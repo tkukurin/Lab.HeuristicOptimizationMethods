@@ -1,13 +1,24 @@
 import java.util.ArrayList;
+import java.util.List;
 
 public class Track {
 
+    private int ord;
     private ArrayList<Integer> restrictions;
     private int trackLength;
+    private int availableSpace;
+    private List<Vehicle> parkedVehicles;
 
-    public Track(ArrayList<Integer> restrictions, int trackLength) {
+    public Track(int ord, ArrayList<Integer> restrictions, int trackLength) {
+        this.ord = ord;
         this.restrictions = restrictions;
         this.trackLength = trackLength;
+        this.availableSpace = trackLength;
+        this.parkedVehicles = new ArrayList<>();
+    }
+
+    public int getOrd() {
+        return ord;
     }
 
     public ArrayList<Integer> getRestrictions() {
@@ -24,6 +35,16 @@ public class Track {
 
     public void setTrackLength(int trackLength) {
         this.trackLength = trackLength;
+    }
+
+    public boolean addVehicle(Vehicle vehicle) {
+        if (availableSpace > vehicle.getVehicleLength() && restrictions.get(vehicle.getOrd()) == 1) {
+            parkedVehicles.add(vehicle);
+            this.availableSpace -= vehicle.getVehicleLength();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override

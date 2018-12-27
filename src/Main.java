@@ -49,7 +49,7 @@ public class Main {
             int ser = Integer.parseInt(series[i]);
             int dep = Integer.parseInt(departureTimes[i]);
             int lay = Integer.parseInt(layoutTypes[i]);
-            vehicles.add(new Vehicle(len, ser, dep, lay));
+            vehicles.add(new Vehicle(i, len, ser, dep, lay));
         }
         for (int i = 0; i < trackNum; i++) {
             ArrayList<Integer> rest = new ArrayList<>();
@@ -58,7 +58,7 @@ public class Main {
                 rest.add(Integer.parseInt(lim[i]));
             }
             int len = Integer.parseInt(trackLengths[i].trim());
-            tracks.add(new Track(rest, len));
+            tracks.add(new Track(i, rest, len));
         }
         sc.close();
 

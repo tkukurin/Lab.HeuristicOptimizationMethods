@@ -1,14 +1,20 @@
 public class Vehicle {
+    private int ord;
     private int vehicleLength;
     private int series;
     private int departure;
     private int layoutType;
 
-    public Vehicle(int vehicleLength, int series, int departure, int layoutType) {
+    public Vehicle(int ord, int vehicleLength, int series, int departure, int layoutType) {
+        this.ord = ord;
         this.vehicleLength = vehicleLength;
         this.series = series;
         this.departure = departure;
         this.layoutType = layoutType;
+    }
+
+    public int getOrd() {
+        return ord;
     }
 
     public int getVehicleLength() {
