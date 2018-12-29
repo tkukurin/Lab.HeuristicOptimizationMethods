@@ -62,6 +62,9 @@ public class Main {
         }
         sc.close();
 
+        // code goes here
+
+
         System.out.println("Vehicles:");
         System.out.println("-----------------------------------------");
         for (Vehicle v : vehicles) {
@@ -72,11 +75,26 @@ public class Main {
         for (Track t : tracks) {
             System.out.println(t.toString());
         }
+
+        // write output to file
+        try {
+            finalise();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void initialise() {
         vehicles = new ArrayList<>();
         tracks = new ArrayList<>();
         blockades = new HashMap<>();
+    }
+
+    private static void finalise() throws IOException {
+        BufferedWriter bf = new BufferedWriter(new FileWriter("output.txt"));
+        for (Track track : tracks) {
+            bf.write(track.printVehiclesInTrack());
+        }
+        bf.close();
     }
 }
