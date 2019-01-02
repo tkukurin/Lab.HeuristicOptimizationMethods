@@ -107,6 +107,8 @@ public class Main {
         ArrayList<Integer> rest = new ArrayList<>();
         for (int j = 0; j < vehicleNum; j++) {
           String[] lim = limitations.get(j).trim().split(" ");
+
+          // TODO not sure this lim[i] is correct
           rest.add(Integer.parseInt(lim[i]));
         }
         int len = Integer.parseInt(trackLengths[i].trim());
