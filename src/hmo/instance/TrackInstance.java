@@ -15,25 +15,34 @@ public class TrackInstance {
     this.track = track;
   }
 
-  public boolean addVehicle(VehicleInstance vehicleInstance) {
+  public boolean canAdd(Vehicle vehicle) {
+    return availableSpace >= vehicle.getVehicleLength()
+        && track.getAllowedVehicleTypes().contains(vehicle.getId());
+  }
+
+  public boolean add(VehicleInstance vehicleInstance) {
     Vehicle vehicle = vehicleInstance.getVehicle();
-    if (availableSpace > vehicle.getVehicleLength() && track.getRestrictions().get(vehicle.getOrd()) == 1) {
+    if (this.canAdd(vehicle)) {
       parkedVehicles.add(vehicleInstance);
-      this.availableSpace -= vehicle.getVehicleLength();
+      availableSpace -= vehicle.getVehicleLength();
       return true;
-    } else {
-      return false;
     }
+
+    return false;
+  }
+
+  public Collection<VehicleInstance> getParkedVehicles() {
+    return parkedVehicles;
   }
 
   // no equals or hashcode for now.
 
-  public String printVehiclesInTrack() {
+  @Override
+  public String toString() {
     return parkedVehicles.stream()
         .map(VehicleInstance::getVehicle)
-        .map(Vehicle::getOrd)
+        .map(Vehicle::getId)
         .map(Object::toString)
         .collect(Collectors.joining(" "));
   }
-
 }

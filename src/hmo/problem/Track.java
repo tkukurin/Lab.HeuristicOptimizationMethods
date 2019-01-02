@@ -1,26 +1,39 @@
 package hmo.problem;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class Track {
 
-  private int ord;
+  private int id;
   private int trackLength;
-  private ArrayList<Integer> restrictions;
+  private Collection<Integer> allowedVehicleTypes;
+  private Collection<Track> blockedByTrack;
+  private Collection<Track> blocksTrack;
 
-  public Track(int ord, ArrayList<Integer> restrictions, int trackLength) {
-    this.ord = ord;
-    this.restrictions = restrictions;
+  public Track(int id, int trackLength, Collection<Integer> allowedVehicleTypes) {
+    this.id = id;
     this.trackLength = trackLength;
+    this.allowedVehicleTypes = allowedVehicleTypes;
   }
 
-  public int getOrd() {
-    return ord;
+  // TODO this maybe isn't necessary
+  public Track(int id, int trackLength, Collection<Integer> allowedTypes,
+      Collection<Track> blockedByTrack, Collection<Track> blocksTrack) {
+    this.id = id;
+    this.allowedVehicleTypes = allowedTypes;
+    this.trackLength = trackLength;
+    this.blockedByTrack = blockedByTrack;
+    this.blocksTrack = blocksTrack;
   }
 
-  public ArrayList<Integer> getRestrictions() {
-    return restrictions;
+  public int getId() {
+    return id;
+  }
+
+  public Collection<Integer> getAllowedVehicleTypes() {
+    return allowedVehicleTypes;
   }
 
   public int getTrackLength() {
@@ -37,22 +50,20 @@ public class Track {
       return false;
     }
     Track track = (Track) o;
-    return ord == track.ord;
+    return id == track.id;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(ord);
+    return Objects.hash(id);
   }
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("Num = " + ord + "len = " + trackLength + ", restrictions : ");
-    for (int i = 0; i < restrictions.size() - 1; i++) {
-      sb.append(restrictions.get(i) + ", ");
-    }
-    sb.append(restrictions.get(restrictions.size() - 1));
-    return sb.toString();
+    return "Num = " + id + "len = " + trackLength + ", "
+        + "allowedVehicleTypes : "
+        + this.allowedVehicleTypes.stream()
+        .map(Object::toString)
+        .collect(Collectors.joining(","));
   }
 }

@@ -1,19 +1,23 @@
 package hmo.problem;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 public class Problem {
   private List<Track> tracks;
   private List<Vehicle> vehicles;
-  private HashMap<Integer, ArrayList<Integer>> blockades;
+  private Map<Integer, Collection<Integer>> trackBlocksTracks;
+  private Map<Integer, Collection<Integer>> trackBlockedByTracks;
 
   public Problem(List<Track> tracks, List<Vehicle> vehicles,
-      HashMap<Integer, ArrayList<Integer>> blockades) {
+      Map<Integer, Collection<Integer>> trackBlocksTracks,
+      Map<Integer, Collection<Integer>> trackBlockedByTracks) {
     this.tracks = tracks;
     this.vehicles = vehicles;
-    this.blockades = blockades;
+    this.trackBlocksTracks = trackBlocksTracks;
+    this.trackBlockedByTracks = trackBlockedByTracks;
   }
 
   public List<Track> getTracks() {
@@ -24,7 +28,11 @@ public class Problem {
     return vehicles;
   }
 
-  public HashMap<Integer, ArrayList<Integer>> getBlockades() {
-    return blockades;
+  public Collection<Integer> getBlocks(int trackId) {
+    return trackBlocksTracks.getOrDefault(trackId, new HashSet<>());
+  }
+
+  public Collection<Integer> getBlockedBy(int trackId) {
+    return trackBlockedByTracks.getOrDefault(trackId, new HashSet<>());
   }
 }

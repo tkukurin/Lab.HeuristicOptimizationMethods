@@ -4,22 +4,22 @@ import java.util.Objects;
 
 public class Vehicle {
 
-  private int ord;
+  private int id;
   private int vehicleLength;
   private int series;
   private int departure;
   private int layoutType;
 
-  public Vehicle(int ord, int vehicleLength, int series, int departure, int layoutType) {
-    this.ord = ord;
+  public Vehicle(int id, int vehicleLength, int series, int departure, int layoutType) {
+    this.id = id;
     this.vehicleLength = vehicleLength;
     this.series = series;
     this.departure = departure;
     this.layoutType = layoutType;
   }
 
-  public int getOrd() {
-    return ord;
+  public int getId() {
+    return id;
   }
 
   public int getVehicleLength() {
@@ -48,17 +48,17 @@ public class Vehicle {
       return false;
     }
     Vehicle vehicle = (Vehicle) o;
-    return ord == vehicle.ord;
+    return id == vehicle.id;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(ord);
+    return Objects.hash(id);
   }
 
   @Override
   public String toString() {
-    return "Num = " + ord + "len = " + vehicleLength + ", ser = " + series + ", dep = " + departure
+    return "Num = " + id + "len = " + vehicleLength + ", ser = " + series + ", dep = " + departure
         + ", lay = " + layoutType;
   }
 }
