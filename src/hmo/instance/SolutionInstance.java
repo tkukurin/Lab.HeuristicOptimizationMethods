@@ -32,8 +32,7 @@ public class SolutionInstance {
   }
 
   public boolean canAssign(Vehicle vehicle, Track track) {
-    return this.assignedTracks.containsKey(track) &&
-        this.assignedTracks.get(track).canAdd(vehicle);
+    return assignedTracks.containsKey(track) && assignedTracks.get(track).canAdd(vehicle);
   }
 
   public void assign(Vehicle vehicle, Track track) {
