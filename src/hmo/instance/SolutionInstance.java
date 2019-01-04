@@ -44,8 +44,11 @@ public class SolutionInstance {
   }
 
   public boolean canAssign(Vehicle vehicle, Track track) {
-    return !assignedTracks.containsKey(track)
+    boolean trackConditions = track.getAllowedVehicleIds().contains(vehicle.getId())
+        && track.getTrackLength() >= vehicle.getVehicleLength();
+    boolean trackInstanceConditions = !assignedTracks.containsKey(track)
         || assignedTracks.get(track).canAdd(vehicle);
+    return trackConditions && trackInstanceConditions;
   }
 
   public void assign(Vehicle vehicle, Track track) {

@@ -28,14 +28,12 @@ public class TrackInstance {
 
   public boolean add(VehicleInstance vehicleInstance) {
     Vehicle vehicle = vehicleInstance.getVehicle();
-    if (canAdd(vehicle)) {
-      parkedVehicles.add(vehicleInstance);
-      availableSpace -= vehicle.getVehicleLength();
-      allowedVehicleSeries = vehicle.getSeries();
-      return true;
-    }
+    assert canAdd(vehicle);
 
-    return false;
+    parkedVehicles.add(vehicleInstance);
+    availableSpace -= vehicle.getVehicleLength();
+    allowedVehicleSeries = vehicle.getSeries();
+    return true;
   }
 
   /** @return parked vehicles **in order** */

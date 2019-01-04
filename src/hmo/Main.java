@@ -49,15 +49,6 @@ public class Main {
 
     Solver greedySolver = new GreedySolver(problem, new Random());
     SolutionInstance greedySolution = greedySolver.solve();
-
-    Map<Integer, Integer> idToCount = new HashMap<>();
-    for (VehicleInstance vehicleInstance : greedySolution.getVehicleInstances()) {
-      int id = vehicleInstance.getTrack().getId();
-      int count = idToCount.getOrDefault(id, 0) + 1;
-      idToCount.put(id, count);
-    }
-    System.out.println(idToCount.values().stream().reduce(0, (i, j) -> i + j));
-
     try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
       for (TrackInstance trackInstance : greedySolution.getTrackInstances()) {
         System.out.println("TI: " + trackInstance.toString());
