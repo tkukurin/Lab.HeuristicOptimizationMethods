@@ -5,11 +5,13 @@ import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SolutionInstance {
 
@@ -29,8 +31,12 @@ public class SolutionInstance {
     return problem;
   }
 
+  /** @return track instances, ordered by their respective ID low-high. */
   public Collection<TrackInstance> getTrackInstances() {
-    return assignedTracks.values();
+    // tracks must be sorted by their IDs low-high
+    return assignedTracks.values().stream()
+        .sorted(Comparator.comparingInt(ti -> ti.getTrack().getId()))
+        .collect(Collectors.toList());
   }
 
   public Collection<VehicleInstance> getVehicleInstances() {
@@ -51,6 +57,11 @@ public class SolutionInstance {
     return cars;
   }
 
+  // (7) departure of any vehicle that comes first must be before the departure of another vehicle
+  // -> this is handled from within TrackInstance
+
+  // TODO this does not take into account the fact that
+  // (8) blocking tracks must come before the tracks that they block
   public boolean canAssign(Vehicle vehicle, Track track) {
     boolean trackConditions = track.getAllowedVehicleIds().contains(vehicle.getId())
         && track.getTrackLength() >= vehicle.getVehicleLength();

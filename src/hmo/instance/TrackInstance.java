@@ -20,24 +20,30 @@ public class TrackInstance {
     this.allowedVehicleSeries = null;
   }
 
-  public boolean canAdd(Vehicle vehicle) {
-    return availableSpace >= vehicle.getVehicleLength()
-        && track.getAllowedVehicleIds().contains(vehicle.getId())
-        && (allowedVehicleSeries == null || allowedVehicleSeries == vehicle.getSeries());
+  public Track getTrack() {
+    return track;
   }
 
   public boolean add(VehicleInstance vehicleInstance) {
     Vehicle vehicle = vehicleInstance.getVehicle();
     assert canAdd(vehicle);
 
-    parkedVehicles.add(vehicleInstance);
-    availableSpace -= vehicle.getVehicleLength();
-    allowedVehicleSeries = vehicle.getSeries();
+    // condition (7): vehicles should be sorted in departing order
+    insertSorted(vehicleInstance);
     return true;
   }
 
-  /** @return parked vehicles **in order** */
+  public boolean canAdd(Vehicle vehicle) {
+    return availableSpace >= vehicle.getVehicleLength()
+        && track.getAllowedVehicleIds().contains(vehicle.getId())
+        && (allowedVehicleSeries == null || allowedVehicleSeries == vehicle.getSeries());
+  }
+
+  /** @return parked vehicles **in order** (sorted by departure time) */
   public List<VehicleInstance> getParkedVehicles() {
+    // condition (7): vehicles should be sorted in departing order
+    // NOTE: this is currently handled from within #add
+//    parkedVehicles.sort(Comparator.comparingInt(vi -> vi.getVehicle().getDeparture()));
     return parkedVehicles;
   }
 
@@ -45,10 +51,26 @@ public class TrackInstance {
 
   @Override
   public String toString() {
-    return parkedVehicles.stream()
+    return getParkedVehicles().stream()
         .map(VehicleInstance::getVehicle)
         .map(Vehicle::getId)
         .map(Object::toString)
         .collect(Collectors.joining(" "));
+  }
+
+  private void insertSorted(VehicleInstance vehicleInstance) {
+    Vehicle vehicleToInsert = vehicleInstance.getVehicle();
+
+    int i;
+    for (i = 0; i < parkedVehicles.size(); i++) {
+      Vehicle parkedVehicle = parkedVehicles.get(i).getVehicle();
+      if (parkedVehicle.getDeparture() >= vehicleToInsert.getDeparture()) {
+        break;
+      }
+    }
+
+    parkedVehicles.add(i, vehicleInstance);
+    availableSpace -= vehicleToInsert.getVehicleLength();
+    allowedVehicleSeries = vehicleToInsert.getSeries();
   }
 }
