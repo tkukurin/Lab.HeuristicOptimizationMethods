@@ -12,7 +12,7 @@ public class GreedySolver extends Solver {
   private static final Logger LOG = Logger.getLogger(GreedySolver.class.toString());
 
   private Random random;
-  int assignedCounter;
+  private int assignedCounter;
 
   public GreedySolver(Problem problem, Random random) {
     super(problem);
@@ -24,8 +24,8 @@ public class GreedySolver extends Solver {
     SolutionInstance solutionInstance = new SolutionInstance(problem);
 
     LOG.info("Starting greedy algorithm.");
-    while (!solutionInstance.getUnassignedVehicles().isEmpty()) {
-      Vehicle nextVehicle = solutionInstance.randomUnassignedVehicle(random);
+    while (!solutionInstance.getVehiclePool().isEmpty()) {
+      Vehicle nextVehicle = solutionInstance.nextRandomVehicle(random);
       for (Track track : problem.getTracks()) {
         if (solutionInstance.canAssign(nextVehicle, track)) {
           solutionInstance.assign(nextVehicle, track);

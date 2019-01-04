@@ -47,11 +47,15 @@ public class Main {
         problem.getVehicles().size(),
         problem.getTracks().size()));
 
-    Solver greedySolver = new GreedySolver(problem, new Random());
-    SolutionInstance greedySolution = greedySolver.solve();
+    SolutionInstance solution;
+    do {
+      Solver greedySolver = new GreedySolver(problem, new Random());
+      solution = greedySolver.solve();
+    } while (!solution.getUnassignedVehicles().isEmpty());
+
     try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
-      for (TrackInstance trackInstance : greedySolution.getTrackInstances()) {
-        System.out.println("TI: " + trackInstance.toString());
+      for (TrackInstance trackInstance : solution.getTrackInstances()) {
+//        System.out.println("TI: " + trackInstance.toString());
         bf.write(trackInstance.toString());
         bf.newLine();
       }

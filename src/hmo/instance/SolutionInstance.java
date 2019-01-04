@@ -6,21 +6,23 @@ import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 public class SolutionInstance {
 
   private Problem problem;
   private Map<Vehicle, VehicleInstance> assignedVehicles;
   private Map<Track, TrackInstance> assignedTracks;
-  private RandomAccessSet<Vehicle> unassignedVehicles;
+  private RandomAccessSet<Vehicle> vehiclePool;
 
   public SolutionInstance(Problem problem) {
     this.problem = problem;
     this.assignedTracks = new HashMap<>(this.problem.getTracks().size());
     this.assignedVehicles = new HashMap<>(this.problem.getVehicles().size());
-    this.unassignedVehicles = new RandomAccessSet<>(problem.getVehicles());
+    this.vehiclePool = new RandomAccessSet<>(problem.getVehicles());
   }
 
   public Problem getProblem() {
@@ -35,12 +37,18 @@ public class SolutionInstance {
     return assignedVehicles.values();
   }
 
-  public Collection<Vehicle> getUnassignedVehicles() {
-    return unassignedVehicles;
+  public Collection<Vehicle> getVehiclePool() {
+    return vehiclePool;
   }
 
-  public Vehicle randomUnassignedVehicle(Random random) {
-    return unassignedVehicles.pollRandom(random);
+  public Vehicle nextRandomVehicle(Random random) {
+    return vehiclePool.pollRandom(random);
+  }
+
+  public Collection<Vehicle> getUnassignedVehicles() {
+    Set<Vehicle> cars = new HashSet<>(problem.getVehicles());
+    cars.removeAll(assignedVehicles.keySet());
+    return cars;
   }
 
   public boolean canAssign(Vehicle vehicle, Track track) {
@@ -58,6 +66,6 @@ public class SolutionInstance {
 
     assignedVehicles.put(vehicle, vehicleInstance);
     assignedTracks.put(track, trackInstance);
-    unassignedVehicles.remove(vehicle);
+    vehiclePool.remove(vehicle);
   }
 }
