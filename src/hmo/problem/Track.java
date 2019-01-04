@@ -8,21 +8,21 @@ public class Track {
 
   private int id;
   private int trackLength;
-  private Collection<Integer> allowedVehicleTypes;
+  private Collection<Integer> allowedVehicleIds;
   private Collection<Track> blockedByTrack;
   private Collection<Track> blocksTrack;
 
-  public Track(int id, int trackLength, Collection<Integer> allowedVehicleTypes) {
+  public Track(int id, int trackLength, Collection<Integer> allowedVehicleIds) {
     this.id = id;
     this.trackLength = trackLength;
-    this.allowedVehicleTypes = allowedVehicleTypes;
+    this.allowedVehicleIds = allowedVehicleIds;
   }
 
   // TODO this maybe isn't necessary
   public Track(int id, int trackLength, Collection<Integer> allowedTypes,
       Collection<Track> blockedByTrack, Collection<Track> blocksTrack) {
     this.id = id;
-    this.allowedVehicleTypes = allowedTypes;
+    this.allowedVehicleIds = allowedTypes;
     this.trackLength = trackLength;
     this.blockedByTrack = blockedByTrack;
     this.blocksTrack = blocksTrack;
@@ -32,8 +32,8 @@ public class Track {
     return id;
   }
 
-  public Collection<Integer> getAllowedVehicleTypes() {
-    return allowedVehicleTypes;
+  public Collection<Integer> getAllowedVehicleIds() {
+    return allowedVehicleIds;
   }
 
   public int getTrackLength() {
@@ -60,10 +60,12 @@ public class Track {
 
   @Override
   public String toString() {
-    return "Num = " + id + "len = " + trackLength + ", "
-        + "allowedVehicleTypes : "
-        + this.allowedVehicleTypes.stream()
+    return "Track{" +
+        "id=" + id +
+        ", trackLength=" + trackLength +
+        ", allowedVehicleIds=" + allowedVehicleIds.stream()
         .map(Object::toString)
-        .collect(Collectors.joining(","));
+        .collect(Collectors.joining(",")) +
+        '}';
   }
 }

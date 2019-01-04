@@ -8,6 +8,7 @@ import genetic.Meta;
 import genetic.generators.BinaryUnits;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
+import hmo.instance.VehicleInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
@@ -27,8 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
 
@@ -36,18 +40,28 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
     final FileReader inputReader = new FileReader("instanca1.txt");
-    final FileWriter outputWriter = new FileWriter("output.txt");
+    final FileWriter outputWriter = new FileWriter("output1.txt");
 
     Problem problem = readInput(inputReader);
     LOG.info(String.format("Solving problem with %s cars and %s tracks.",
         problem.getVehicles().size(),
         problem.getTracks().size()));
 
-    Solver greedySolver = new GreedySolver(problem, new Random(42L));
+    Solver greedySolver = new GreedySolver(problem, new Random());
     SolutionInstance greedySolution = greedySolver.solve();
+
+    Map<Integer, Integer> idToCount = new HashMap<>();
+    for (VehicleInstance vehicleInstance : greedySolution.getVehicleInstances()) {
+      int id = vehicleInstance.getTrack().getId();
+      int count = idToCount.getOrDefault(id, 0) + 1;
+      idToCount.put(id, count);
+    }
+    System.out.println(idToCount.values().stream().reduce(0, (i, j) -> i + j));
+
     try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
-      for (TrackInstance track : greedySolution.getTrackInstances()) {
-        bf.write(track.toString());
+      for (TrackInstance trackInstance : greedySolution.getTrackInstances()) {
+        System.out.println("TI: " + trackInstance.toString());
+        bf.write(trackInstance.toString());
         bf.newLine();
       }
     }
@@ -108,9 +122,22 @@ public class Main {
       String[] series = sc.nextLine().trim().split(" ");
       sc.nextLine();
 
-      List<String> limitations = new ArrayList<>();
+      Map<Integer, Set<Integer>> trackIdToVehicleIds = new HashMap<>();
       for (int i = 0; i < vehicleNum; i++) {
-        limitations.add(sc.nextLine());
+        final int vehicleId = i;
+        // limitation equals 1 if car "i" can be placed on track "j"
+        List<Integer> limitation = Arrays.stream(sc.nextLine().split(" "))
+            .map(Integer::parseInt).collect(Collectors.toList());
+        assert limitation.size() == trackNum;
+        IntStream.range(0, limitation.size())
+            .forEach(trackId -> {
+              if (limitation.get(trackId) == 1) {
+                Set<Integer> vehicleIds = trackIdToVehicleIds
+                    .getOrDefault(trackId, new HashSet<>());
+                vehicleIds.add(vehicleId);
+                trackIdToVehicleIds.put(trackId, vehicleIds);
+              }
+            });
       }
 
       sc.nextLine();
@@ -150,19 +177,8 @@ public class Main {
       }
 
       for (int i = 0; i < trackNum; i++) {
-        ArrayList<Integer> rest = new ArrayList<>();
-        for (int j = 0; j < vehicleNum; j++) {
-          String[] lim = limitations.get(j).trim().split(" ");
-
-          // TODO not sure this lim[i] is correct
-          rest.add(Integer.parseInt(lim[i]));
-        }
         int len = Integer.parseInt(trackLengths[i].trim());
-
-        // TODO check if we need this
-//        Collection<Integer> blocks = blockades.getOrDefault(i, new HashSet<>();
-//        Collection<Integer> blockedBy = inverseBlockades.getOrDefault(i, new HashSet<>());
-        tracks.add(new Track(i, len, rest));
+        tracks.add(new Track(i, len, trackIdToVehicleIds.get(i)));
       }
     }
 

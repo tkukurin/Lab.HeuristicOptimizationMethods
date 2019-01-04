@@ -58,7 +58,12 @@ public class Vehicle {
 
   @Override
   public String toString() {
-    return "Num = " + id + "len = " + vehicleLength + ", ser = " + series + ", dep = " + departure
-        + ", lay = " + layoutType;
+    return "Vehicle{" +
+        "id=" + id +
+        ", vehicleLength=" + vehicleLength +
+        ", series=" + series +
+        ", departure=" + departure +
+        ", layoutType=" + layoutType +
+        '}';
   }
 }

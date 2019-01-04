@@ -21,7 +21,6 @@ public class SolutionInstance {
     this.assignedTracks = new HashMap<>(this.problem.getTracks().size());
     this.assignedVehicles = new HashMap<>(this.problem.getVehicles().size());
     this.unassignedVehicles = new RandomAccessSet<>(problem.getVehicles());
-    //new HashSet<>(problem.getVehicles());
   }
 
   public Problem getProblem() {
@@ -41,11 +40,12 @@ public class SolutionInstance {
   }
 
   public Vehicle randomUnassignedVehicle(Random random) {
-    return this.unassignedVehicles.pollRandom(random);
+    return unassignedVehicles.pollRandom(random);
   }
 
   public boolean canAssign(Vehicle vehicle, Track track) {
-    return !assignedTracks.containsKey(track) || assignedTracks.get(track).canAdd(vehicle);
+    return !assignedTracks.containsKey(track)
+        || assignedTracks.get(track).canAdd(vehicle);
   }
 
   public void assign(Vehicle vehicle, Track track) {

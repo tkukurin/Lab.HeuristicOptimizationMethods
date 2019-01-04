@@ -3,24 +3,27 @@ package hmo.instance;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class TrackInstance {
 
   private Track track;
   private int availableSpace;
-  private Collection<VehicleInstance> parkedVehicles;
+  private Integer allowedVehicleSeries;
+  private List<VehicleInstance> parkedVehicles;
 
   public TrackInstance(Track track) {
     this.track = track;
     this.availableSpace = track.getTrackLength();
     this.parkedVehicles = new ArrayList<>();
+    this.allowedVehicleSeries = null;
   }
 
   public boolean canAdd(Vehicle vehicle) {
     return availableSpace >= vehicle.getVehicleLength()
-        && track.getAllowedVehicleTypes().contains(vehicle.getLayoutType());
+        && track.getAllowedVehicleIds().contains(vehicle.getId())
+        && (allowedVehicleSeries == null || allowedVehicleSeries == vehicle.getSeries());
   }
 
   public boolean add(VehicleInstance vehicleInstance) {
@@ -28,13 +31,15 @@ public class TrackInstance {
     if (canAdd(vehicle)) {
       parkedVehicles.add(vehicleInstance);
       availableSpace -= vehicle.getVehicleLength();
+      allowedVehicleSeries = vehicle.getSeries();
       return true;
     }
 
     return false;
   }
 
-  public Collection<VehicleInstance> getParkedVehicles() {
+  /** @return parked vehicles **in order** */
+  public List<VehicleInstance> getParkedVehicles() {
     return parkedVehicles;
   }
 

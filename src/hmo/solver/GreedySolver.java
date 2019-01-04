@@ -9,9 +9,10 @@ import java.util.logging.Logger;
 
 public class GreedySolver extends Solver {
 
-  private static final Logger LOG = Logger.getGlobal();
+  private static final Logger LOG = Logger.getLogger(GreedySolver.class.toString());
 
   private Random random;
+  int assignedCounter;
 
   public GreedySolver(Problem problem, Random random) {
     super(problem);
@@ -28,13 +29,14 @@ public class GreedySolver extends Solver {
       for (Track track : problem.getTracks()) {
         if (solutionInstance.canAssign(nextVehicle, track)) {
           solutionInstance.assign(nextVehicle, track);
-          LOG.info("Assigned.");
+          assignedCounter++;
           break;
         }
       }
     }
 
     LOG.info("Completed greedy algorithm.");
+    LOG.info(String.format("Assigned %s cars.", assignedCounter));
     return solutionInstance;
   }
 }

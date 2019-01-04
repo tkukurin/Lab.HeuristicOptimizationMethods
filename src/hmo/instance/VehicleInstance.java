@@ -24,5 +24,13 @@ public class VehicleInstance {
   public Track getTrack() {
     return track;
   }
+
+  @Override
+  public String toString() {
+    return "VehicleInstance{" +
+        "vehicle=" + vehicle +
+        ", track=" + track +
+        '}';
+  }
 }
 
