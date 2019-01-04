@@ -5,8 +5,11 @@ import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import java.util.Random;
+import java.util.logging.Logger;
 
 public class GreedySolver extends Solver {
+
+  private static final Logger LOG = Logger.getGlobal();
 
   private Random random;
 
@@ -19,15 +22,19 @@ public class GreedySolver extends Solver {
   public SolutionInstance solve() {
     SolutionInstance solutionInstance = new SolutionInstance(problem);
 
+    LOG.info("Starting greedy algorithm.");
     while (!solutionInstance.getUnassignedVehicles().isEmpty()) {
       Vehicle nextVehicle = solutionInstance.randomUnassignedVehicle(random);
       for (Track track : problem.getTracks()) {
         if (solutionInstance.canAssign(nextVehicle, track)) {
           solutionInstance.assign(nextVehicle, track);
+          LOG.info("Assigned.");
+          break;
         }
       }
     }
 
+    LOG.info("Completed greedy algorithm.");
     return solutionInstance;
   }
 }

@@ -20,7 +20,7 @@ public class TrackInstance {
 
   public boolean canAdd(Vehicle vehicle) {
     return availableSpace >= vehicle.getVehicleLength()
-        && track.getAllowedVehicleTypes().contains(vehicle.getId());
+        && track.getAllowedVehicleTypes().contains(vehicle.getLayoutType());
   }
 
   public boolean add(VehicleInstance vehicleInstance) {

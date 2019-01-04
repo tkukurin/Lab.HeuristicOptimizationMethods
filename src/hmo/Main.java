@@ -28,14 +28,32 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 public class Main {
+
+  private static  final Logger LOG = Logger.getLogger(Main.class.toString());
 
   public static void main(String[] args) throws IOException {
     final FileReader inputReader = new FileReader("instanca1.txt");
     final FileWriter outputWriter = new FileWriter("output.txt");
 
     Problem problem = readInput(inputReader);
+    LOG.info(String.format("Solving problem with %s cars and %s tracks.",
+        problem.getVehicles().size(),
+        problem.getTracks().size()));
+
+    Solver greedySolver = new GreedySolver(problem, new Random(42L));
+    SolutionInstance greedySolution = greedySolver.solve();
+    try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
+      for (TrackInstance track : greedySolution.getTrackInstances()) {
+        bf.write(track.toString());
+        bf.newLine();
+      }
+    }
+  }
+
+  private static void outputProblem(Problem problem) {
     System.out.println("Vehicles:");
     System.out.println("-----------------------------------------");
     for (Vehicle v : problem.getVehicles()) {
@@ -45,14 +63,6 @@ public class Main {
     System.out.println("-----------------------------------------");
     for (Track t : problem.getTracks()) {
       System.out.println(t.toString());
-    }
-
-    Solver greedySolver = new GreedySolver(problem, new Random(42L));
-    SolutionInstance greedySolution = greedySolver.solve();
-    try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
-      for (TrackInstance track : greedySolution.getTrackInstances()) {
-        bf.write(track.toString());
-      }
     }
   }
 
