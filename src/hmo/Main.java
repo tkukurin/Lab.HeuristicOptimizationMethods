@@ -11,6 +11,8 @@ import hmo.instance.TrackInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
+import hmo.solver.GreedySolver;
+import hmo.solver.Solver;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -45,9 +47,10 @@ public class Main {
       System.out.println(t.toString());
     }
 
-    SolutionInstance solutionInstance = solveGeneticAlgorithm(problem);
+    Solver greedySolver = new GreedySolver(problem, new Random(42L));
+    SolutionInstance greedySolution = greedySolver.solve();
     try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
-      for (TrackInstance track : solutionInstance.getTrackInstances()) {
+      for (TrackInstance track : greedySolution.getTrackInstances()) {
         bf.write(track.toString());
       }
     }

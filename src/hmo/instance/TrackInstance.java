@@ -2,6 +2,7 @@ package hmo.instance;
 
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
@@ -13,6 +14,8 @@ public class TrackInstance {
 
   public TrackInstance(Track track) {
     this.track = track;
+    this.availableSpace = track.getTrackLength();
+    this.parkedVehicles = new ArrayList<>();
   }
 
   public boolean canAdd(Vehicle vehicle) {
@@ -22,7 +25,7 @@ public class TrackInstance {
 
   public boolean add(VehicleInstance vehicleInstance) {
     Vehicle vehicle = vehicleInstance.getVehicle();
-    if (this.canAdd(vehicle)) {
+    if (canAdd(vehicle)) {
       parkedVehicles.add(vehicleInstance);
       availableSpace -= vehicle.getVehicleLength();
       return true;
