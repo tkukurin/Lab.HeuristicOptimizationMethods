@@ -1,35 +1,15 @@
 package hmo;
 
-import genetic.Assignments.Parameters;
-import genetic.GeneticAlgorithm.IterationBounds;
-import genetic.GeneticAlgorithm.PopulationInfo;
-import genetic.GeneticAlgorithm.Unit;
-import genetic.Meta;
-import genetic.generators.BinaryUnits;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
-import hmo.instance.VehicleInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import hmo.solver.GreedySolver;
 import hmo.solver.Solver;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.function.Function;
+
+import java.io.*;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -48,9 +28,12 @@ public class Main {
         problem.getTracks().size()));
 
     SolutionInstance solution;
+    int iteration = 1;
     do {
       Solver greedySolver = new GreedySolver(problem, new Random());
       solution = greedySolver.solve();
+      Evaluator evaluator = new Evaluator(solution);
+      evaluator.rate(iteration++);
     } while (!solution.getUnassignedVehicles().isEmpty());
 
     try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
