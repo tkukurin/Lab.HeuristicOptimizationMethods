@@ -1,14 +1,7 @@
 package hmo;
 
-import genetic.Assignments.Parameters;
-import genetic.GeneticAlgorithm.IterationBounds;
-import genetic.GeneticAlgorithm.PopulationInfo;
-import genetic.GeneticAlgorithm.Unit;
-import genetic.Meta;
-import genetic.generators.BinaryUnits;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
-import hmo.instance.VehicleInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
@@ -29,7 +22,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -54,24 +46,11 @@ public class Main {
     } while (!solution.getUnassignedVehicles().isEmpty());
 
     try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
-      for (TrackInstance trackInstance : solution.getTrackInstances()) {
+      for (TrackInstance trackInstance : solution.getTrackInstancesInorder()) {
 //        System.out.println("TI: " + trackInstance.toString());
         bf.write(trackInstance.toString());
         bf.newLine();
       }
-    }
-  }
-
-  private static void outputProblem(Problem problem) {
-    System.out.println("Vehicles:");
-    System.out.println("-----------------------------------------");
-    for (Vehicle v : problem.getVehicles()) {
-      System.out.println(v.toString());
-    }
-    System.out.println("Tracks:");
-    System.out.println("-----------------------------------------");
-    for (Track t : problem.getTracks()) {
-      System.out.println(t.toString());
     }
   }
 
@@ -117,6 +96,7 @@ public class Main {
       String[] layoutTypes = sc.nextLine().trim().split(" ");
       sc.nextLine();
 
+      // fmt: "blockingTrack listOfBlockedTracks"
       while (sc.hasNext()) {
         String[] lines = sc.nextLine().trim().split(" ");
         if (lines.length > 0 && !lines[0].isEmpty()) {
@@ -137,21 +117,37 @@ public class Main {
         }
       }
 
-      for (int i = 0; i < vehicleNum; i++) {
-        int len = Integer.parseInt(vehicleLengths[i]);
-        int ser = Integer.parseInt(series[i]);
-        int dep = Integer.parseInt(departureTimes[i]);
-        int lay = Integer.parseInt(layoutTypes[i]);
-        vehicles.add(new Vehicle(i, len, ser, dep, lay));
+      for (int vehicleId = 0; vehicleId < vehicleNum; vehicleId++) {
+        int len = Integer.parseInt(vehicleLengths[vehicleId]);
+        int ser = Integer.parseInt(series[vehicleId]);
+        int dep = Integer.parseInt(departureTimes[vehicleId]);
+        int lay = Integer.parseInt(layoutTypes[vehicleId]);
+        vehicles.add(new Vehicle(vehicleId, len, ser, dep, lay));
       }
 
-      for (int i = 0; i < trackNum; i++) {
-        int len = Integer.parseInt(trackLengths[i].trim());
-        tracks.add(new Track(i, len, trackIdToVehicleIds.get(i)));
+      for (int trackId = 0; trackId < trackNum; trackId++) {
+        int len = Integer.parseInt(trackLengths[trackId].trim());
+        tracks.add(new Track(trackId, len, trackIdToVehicleIds.get(trackId)));
       }
+
+      assert vehicles.size() == vehicleNum;
+      assert tracks.size() == trackNum;
     }
 
     return new Problem(tracks, vehicles, blockades, inverseBlockades);
+  }
+
+  private static void outputProblem(Problem problem) {
+    System.out.println("Vehicles:");
+    System.out.println("-----------------------------------------");
+    for (Vehicle v : problem.getVehicles()) {
+      System.out.println(v.toString());
+    }
+    System.out.println("Tracks:");
+    System.out.println("-----------------------------------------");
+    for (Track t : problem.getTracks()) {
+      System.out.println(t.toString());
+    }
   }
 
 }

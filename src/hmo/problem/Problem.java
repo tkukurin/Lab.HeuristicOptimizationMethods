@@ -1,5 +1,6 @@
 package hmo.problem;
 
+import hmo.instance.TrackInstance;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -34,5 +35,18 @@ public class Problem {
 
   public Collection<Integer> getBlockedBy(int trackId) {
     return trackBlockedByTracks.getOrDefault(trackId, new HashSet<>());
+  }
+
+  public TrackInstance getBlockedTrack(TrackInstance first, TrackInstance second) {
+    int fstId = first.getTrack().getId();
+    int sndId = second.getTrack().getId();
+
+    if (getBlocks(fstId).contains(sndId)) {
+      return second;
+    }
+    if (getBlocks(sndId).contains(fstId)) {
+      return first;
+    }
+    return null;
   }
 }

@@ -29,8 +29,8 @@ public class GeneticAlgorithm<T> {
   }
 
   public static class Pair<A, B> {
-    A first;
-    B second;
+    public A first;
+    public B second;
 
     public Pair(A first, B second) {
       this.first = first;

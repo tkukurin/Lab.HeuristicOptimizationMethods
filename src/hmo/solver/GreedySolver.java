@@ -4,7 +4,9 @@ import hmo.instance.SolutionInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
+import java.util.Collection;
 import java.util.Random;
+import java.util.Stack;
 import java.util.logging.Logger;
 
 public class GreedySolver extends Solver {
@@ -25,7 +27,7 @@ public class GreedySolver extends Solver {
 
     LOG.info("Starting greedy algorithm.");
     while (!solutionInstance.getVehiclePool().isEmpty()) {
-      Vehicle nextVehicle = solutionInstance.nextRandomVehicle(random);
+      Vehicle nextVehicle = solutionInstance.pollRandomVehicle(random);
       for (Track track : problem.getTracks()) {
         if (solutionInstance.canAssign(nextVehicle, track)) {
           solutionInstance.assign(nextVehicle, track);
@@ -38,5 +40,19 @@ public class GreedySolver extends Solver {
     LOG.info("Completed greedy algorithm.");
     LOG.info(String.format("Assigned %s cars.", assignedCounter));
     return solutionInstance;
+  }
+
+  // currently unused.
+  private void adjust(SolutionInstance solutionInstance) {
+    Stack<Integer> stack = new Stack<>();
+    stack.push(0);
+
+    while (!stack.isEmpty()) {
+      int top = stack.pop();
+      Collection<Integer> blocks = problem.getBlocks(top);
+      for (int other : problem.getBlocks(top)) {
+
+      }
+    }
   }
 }
