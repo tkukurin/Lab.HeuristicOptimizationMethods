@@ -4,13 +4,8 @@ import hmo.common.RandomAccessSet;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class SolutionInstance {
@@ -78,5 +73,15 @@ public class SolutionInstance {
     assignedVehicles.put(vehicle, vehicleInstance);
     assignedTracks.put(track, trackInstance);
     vehiclePool.remove(vehicle);
+  }
+
+  public int getNumOfUsedTracks() {
+    int used = 0;
+    for (TrackInstance track : assignedTracks.values()) {
+      if (!track.getParkedVehicles().isEmpty()) {
+        used++;
+      }
+    }
+    return used;
   }
 }
