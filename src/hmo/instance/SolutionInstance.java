@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class SolutionInstance {
@@ -121,5 +123,15 @@ public class SolutionInstance {
 
     assignedVehicles.put(vehicle, vehicleInstance);
     vehiclePool.remove(vehicle);
+  }
+
+  public int getNumOfUsedTracks() {
+    int used = 0;
+    for (TrackInstance track : trackToIstance.values()) {
+      if (!track.getParkedVehicles().isEmpty()) {
+        used++;
+      }
+    }
+    return used;
   }
 }

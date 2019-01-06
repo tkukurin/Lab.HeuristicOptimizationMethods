@@ -22,6 +22,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
+
+import java.io.*;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -40,9 +43,12 @@ public class Main {
         problem.getTracks().size()));
 
     SolutionInstance solution;
+    int iteration = 1;
     do {
       Solver greedySolver = new GreedySolver(problem, new Random());
       solution = greedySolver.solve();
+      Evaluator evaluator = new Evaluator(solution);
+      evaluator.rate(iteration++);
     } while (!solution.getUnassignedVehicles().isEmpty());
 
     try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
