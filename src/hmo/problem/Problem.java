@@ -10,6 +10,8 @@ public class Problem {
   private List<Vehicle> vehicles;
   private Map<Integer, Collection<Integer>> trackBlocksTracks;
   private Map<Integer, Collection<Integer>> trackBlockedByTracks;
+  private int totalTrackLength;
+  private int totalVehicleLength;
 
   public Problem(List<Track> tracks, List<Vehicle> vehicles,
       Map<Integer, Collection<Integer>> trackBlocksTracks,
@@ -18,6 +20,8 @@ public class Problem {
     this.vehicles = vehicles;
     this.trackBlocksTracks = trackBlocksTracks;
     this.trackBlockedByTracks = trackBlockedByTracks;
+    setTotalTrackLength();
+    setTotalVehicleLength();
   }
 
   public List<Track> getTracks() {
@@ -34,5 +38,29 @@ public class Problem {
 
   public Collection<Integer> getBlockedBy(int trackId) {
     return trackBlockedByTracks.getOrDefault(trackId, new HashSet<>());
+  }
+
+  public void setTotalTrackLength() {
+    int len = 0;
+    for (Track track : tracks) {
+      len += track.getTrackLength();
+    }
+    this.totalTrackLength = len;
+  }
+
+  public void setTotalVehicleLength() {
+    int len = 0;
+    for (Vehicle vehicle : vehicles) {
+      len += vehicle.getVehicleLength();
+    }
+    this.totalVehicleLength = len;
+  }
+
+  public int getTotalTrackLength() {
+    return totalTrackLength;
+  }
+
+  public int getTotalVehicleLength() {
+    return totalVehicleLength;
   }
 }
