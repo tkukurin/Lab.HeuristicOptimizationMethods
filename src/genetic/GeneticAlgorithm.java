@@ -55,8 +55,10 @@ public class GeneticAlgorithm<T> {
       this.errorThreshold = errorThreshold;
     }
 
-    boolean complete(int numIterations, double error) {
-      return numIterations == this.numIterations || error <= this.errorThreshold;
+    boolean complete(int numIterations, Deque<Double> lastErrors) {
+      Double lastError = lastErrors.peekLast();
+      return numIterations == this.numIterations
+          || (lastError != null && lastError <= this.errorThreshold);
     }
   }
 
@@ -77,9 +79,18 @@ public class GeneticAlgorithm<T> {
   public interface FitnessEvaluator<T> extends Function<T, Double> {
   }
 
-  public class UnitKeyFitnessValue extends AbstractMap.SimpleImmutableEntry<Unit<T>, Double> {
-    public UnitKeyFitnessValue(Unit<T> key, Double value) {
+  public static class UnitAndFitness<T> extends AbstractMap.SimpleImmutableEntry<
+      Unit<T>, Double> {
+    public UnitAndFitness(Unit<T> key, Double value) {
       super(key, value);
+    }
+
+    public Unit<T> getUnit() {
+      return super.getKey();
+    }
+
+    public Double getFitness() {
+      return super.getValue();
     }
   }
 
@@ -98,7 +109,7 @@ public class GeneticAlgorithm<T> {
   private PopulationInfo populationInfo;
   private IterationBounds iterationBounds;
   private FitnessEvaluator<T> fitnessEvaluator;
-  private List<UnitKeyFitnessValue> population;
+  private List<UnitAndFitness<T>> population;
   private Combinator<T> crossover;
   private Mutator<T> mutator;
   private Random random;
@@ -120,25 +131,22 @@ public class GeneticAlgorithm<T> {
     this.mutator = mutator;
     this.random = random;
     this.population = sortedByDescendingFitness(unitGenerator.init(populationInfo.size).stream()
-        .map(unit -> new UnitKeyFitnessValue(unit, fitnessEvaluator.apply(unit.value))));
+        .map(unit -> new UnitAndFitness<>(unit, fitnessEvaluator.apply(unit.value))));
     this.logger = logger;
   }
 
-  public UnitKeyFitnessValue iterate() {
+  public UnitAndFitness<T> iterate() {
     int iterations = 0;
     double error = Double.MAX_VALUE;
+    Deque<Double> errors = new ArrayDeque<>(5);
 
-    while (!iterationBounds.complete(iterations++, error)) {
+    while (!iterationBounds.complete(iterations++, errors)) {
       population = evolve(population);
-      double newError = 1 / population.get(0).getValue();
+      errors.offerLast(1 / population.get(0).getFitness());
 
-      if (newError < error) {
-        logger.info("step: " + iterations);
-        logger.info("error: " + newError);
-        logger.info("unit: " + population.get(0));
+      if (iterations % 10_000 == 0) {
+        logger.info(String.format("Completed %s steps.", iterations));
       }
-
-      error = newError;
     }
 
     logger.info("step: " + iterations);
@@ -148,11 +156,11 @@ public class GeneticAlgorithm<T> {
     return population.get(0);
   }
 
-  private List<UnitKeyFitnessValue> evolve(List<UnitKeyFitnessValue> population) {
-    List<UnitKeyFitnessValue> newPopulation = topN(population, populationInfo.elitism);
+  private List<UnitAndFitness<T>> evolve(List<UnitAndFitness<T>> population) {
+    List<UnitAndFitness<T>> newPopulation = topN(population, populationInfo.elitism);
 
-    for (int i = populationInfo.elitism; i < populationInfo.size; i++) {
-      Unit<T> child = population.get(random.nextInt(population.size())).getKey();
+    for (int i = newPopulation.size(); i < populationInfo.size; i++) {
+      Unit<T> child = population.get(random.nextInt(population.size())).getUnit();
 
       if (shouldPerformAction(populationInfo.crossoverProbability)) {
         Pair<Unit<T>, Unit<T>> parents = selectParents(population);
@@ -163,7 +171,7 @@ public class GeneticAlgorithm<T> {
         child = mutator.apply(child);
       }
 
-      newPopulation.add(new UnitKeyFitnessValue(child, fitnessEvaluator.apply(child.value)));
+      newPopulation.add(new UnitAndFitness<>(child, fitnessEvaluator.apply(child.value)));
     }
 
     return sortedByDescendingFitness(newPopulation);
@@ -173,22 +181,22 @@ public class GeneticAlgorithm<T> {
     return random.nextDouble() <= percentage;
   }
 
-  private List<UnitKeyFitnessValue> sortedByDescendingFitness(List<UnitKeyFitnessValue> list) {
+  private List<UnitAndFitness<T>> sortedByDescendingFitness(List<UnitAndFitness<T>> list) {
     return sortedByDescendingFitness(list.stream());
   }
 
-  private List<UnitKeyFitnessValue> sortedByDescendingFitness(Stream<UnitKeyFitnessValue> stream) {
-    return stream.sorted(Comparator.<UnitKeyFitnessValue, Double>comparing(Map.Entry::getValue).reversed())
+  private List<UnitAndFitness<T>> sortedByDescendingFitness(Stream<UnitAndFitness<T>> stream) {
+    return stream.sorted(Comparator.comparingDouble(UnitAndFitness<T>::getFitness).reversed())
         .collect(Collectors.toList());
   }
 
-  private List<UnitKeyFitnessValue> topN(List<UnitKeyFitnessValue> population, int elitism) {
+  private List<UnitAndFitness<T>> topN(List<UnitAndFitness<T>> population, int elitism) {
     return population.stream()
-        .filter(kv -> Double.isFinite(kv.getValue()))
+        .filter(kv -> Double.isFinite(kv.getFitness()))
         .limit(elitism).collect(Collectors.toList());
   }
 
-  private Pair<Unit<T>, Unit<T>> selectParents(List<UnitKeyFitnessValue> units) {
+  private Pair<Unit<T>, Unit<T>> selectParents(List<UnitAndFitness<T>> units) {
     double first = random.nextDouble();
     double second = random.nextDouble();
     double totalFitness = units.stream().map(AbstractMap.SimpleImmutableEntry::getValue)
@@ -196,15 +204,15 @@ public class GeneticAlgorithm<T> {
 
     List<Unit<T>> parents = new ArrayList<>();
     double prevFitness = 0;
-    for (UnitKeyFitnessValue unitKeyFitnessValue : units) {
-      double fitness = unitKeyFitnessValue.getValue() / totalFitness + prevFitness;
+    for (UnitAndFitness<T> unitAndFitness : units) {
+      double fitness = unitAndFitness.getFitness() / totalFitness + prevFitness;
 
       if (first <= fitness && first >= prevFitness) {
-        parents.add(unitKeyFitnessValue.getKey());
+        parents.add(unitAndFitness.getUnit());
       }
 
       if (second <= fitness && second >= prevFitness) {
-        parents.add(unitKeyFitnessValue.getKey());
+        parents.add(unitAndFitness.getUnit());
       }
 
       prevFitness = fitness;
@@ -212,7 +220,7 @@ public class GeneticAlgorithm<T> {
 
     // e.g. if fitness values are NaN
     while (parents.size() < 2) {
-      parents.add(units.get(random.nextInt(units.size())).getKey());
+      parents.add(units.get(random.nextInt(units.size())).getUnit());
     }
 
     return new Pair<>(parents.get(0), parents.get(1));

@@ -66,11 +66,23 @@ public class SolutionInstance {
     return vehiclePool;
   }
 
+
+  public Vehicle getRandomVehicle(Random random) {
+    if (vehiclePool.size() == 0) {
+      return null;
+    }
+
+    return vehiclePool.get(random.nextInt(vehiclePool.size()));
+  }
+
   public Vehicle pollRandomVehicle(Random random) {
     return vehiclePool.pollRandom(random);
   }
 
   public void returnToPool(Vehicle ... vehicles) {
+    // ??
+//    for (Vehicle vehicle : vehicles)
+//      assignedVehicles.remove(vehicle);
     vehiclePool.addAll(Arrays.asList(vehicles));
   }
 
@@ -148,5 +160,9 @@ public class SolutionInstance {
       }
     }
     return used;
+  }
+
+  public void setVehiclePool(Collection<Vehicle> vehiclePool) {
+    this.vehiclePool = new RandomAccessSet<>(vehiclePool);
   }
 }

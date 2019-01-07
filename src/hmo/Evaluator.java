@@ -13,11 +13,13 @@ public class Evaluator {
     this.solutionInstance = solutionInstance;
   }
 
-  public double rate() {
+  public double maximizationFunction() {
     double firstGoal = p1f1() + p2f2() + p3f3();
     double secondGoal = r1g1() + r2g2() + r3g3();
-    // TODO this is just temporary
-    return secondGoal;
+    int numUnused = solutionInstance.getUnassignedVehicles().size();
+    int numVehicles = solutionInstance.getProblem().getVehicles().size();
+    // we necessarily want *all* cars to be assigned. so add a huge penalty otherwise.
+    return 1.0 / firstGoal + secondGoal + Math.exp(20 * (numVehicles - numUnused));
   }
 
   private double p1f1() {

@@ -5,7 +5,9 @@ import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Logger;
 
@@ -14,7 +16,6 @@ public class GreedySolver extends Solver {
   private static final Logger LOG = Logger.getLogger(GreedySolver.class.toString());
 
   private Random random;
-  private int assignedCounter;
 
   public GreedySolver(Problem problem, Random random) {
     super(problem);
@@ -26,19 +27,27 @@ public class GreedySolver extends Solver {
     SolutionInstance solutionInstance = new SolutionInstance(problem);
 
     LOG.info("Starting greedy algorithm.");
+    Set<Vehicle> unassignedVehicles = new HashSet<>();
     while (!solutionInstance.getVehiclePool().isEmpty()) {
       Vehicle nextVehicle = solutionInstance.pollRandomVehicle(random);
+
+      boolean assigned = false;
       for (Track track : problem.getTracks()) {
         if (solutionInstance.canAssign(nextVehicle, track)) {
           solutionInstance.assign(nextVehicle, track);
-          assignedCounter++;
+          assigned = true;
           break;
         }
+      }
+
+      if (!assigned) {
+        unassignedVehicles.add(nextVehicle);
       }
     }
 
     LOG.info("Completed greedy algorithm.");
-    LOG.info(String.format("Assigned %s cars.", assignedCounter));
+    LOG.info(String.format("Assigned %s cars.", solutionInstance.getVehicleInstances().size()));
+    solutionInstance.setVehiclePool(unassignedVehicles);
     return solutionInstance;
   }
 

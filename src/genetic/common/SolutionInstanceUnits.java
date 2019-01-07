@@ -7,9 +7,8 @@ import genetic.GeneticAlgorithm.IterationBounds;
 import genetic.GeneticAlgorithm.Mutator;
 import genetic.GeneticAlgorithm.Pair;
 import genetic.GeneticAlgorithm.UnitGenerator;
-import genetic.GeneticAlgorithm.UnitKeyFitnessValue;
+import genetic.GeneticAlgorithm.UnitAndFitness;
 import genetic.Meta;
-import hmo.Evaluator;
 import hmo.common.Utils;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
@@ -17,47 +16,58 @@ import hmo.instance.VehicleInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
+import hmo.solver.GreedySolver;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SolutionInstanceUnits {
+  private static final Logger logger = Logger.getLogger(SolutionInstanceUnits.class.toString());
 
   private Random random;
   private Problem problem;
+  private ExecutorService executorService;
 
-  public SolutionInstanceUnits(Random random, Problem problem) {
+  public SolutionInstanceUnits(Random random, Problem problem,
+      ExecutorService executorService) {
     this.random = random;
     this.problem = problem;
+    this.executorService = executorService;
   }
 
-  public List<UnitKeyFitnessValue> evaluate(
-      Function<List<Double>, Double> function, Random random,
-      IterationBounds iterationBounds, Meta meta, List<Parameters> params) {
-    List<UnitKeyFitnessValue> solution = new ArrayList<>();
-    for (Parameters parameters : params) {
-      GeneticAlgorithm<List<SolutionInstance>> geneticAlgorithm = new GeneticAlgorithm<>(
-          unitGenerator(random, meta), parameters.populationInfo, iterationBounds,
-          fitnessEvaluator(function, meta), uniformCrossover(random, meta),
-          mutator(random, meta), random, Logger.getLogger(SolutionInstanceUnits.class.toString()));
-      solution.add(geneticAlgorithm.iterate());
-    }
-    return solution;
+  public List<Future<UnitAndFitness<SolutionInstance>>> evaluate(
+      Function<SolutionInstance, Double> fitnessFunction,
+      IterationBounds iterationBounds,
+      Meta meta,
+      List<Parameters> parameters)
+        throws InterruptedException {
+    Stream<Callable<UnitAndFitness<SolutionInstance>>> callableStream = parameters
+        .stream()
+        .map(param -> new GeneticAlgorithm<>(
+            unitGenerator(random, meta), param.populationInfo, iterationBounds,
+            fitnessFunction::apply, uniformCrossover(random, meta),
+            mutator(random, meta), random, logger))
+        .map(ga -> ga::iterate);
+
+    return executorService.invokeAll(callableStream.collect(Collectors.toList()));
   }
 
-  public Mutator<List<SolutionInstance>> mutator(Random random, Meta meta) {
-    return vector -> vector.stream().map(this::modify).collect(Collectors.toList());
+  public Mutator<SolutionInstance> mutator(Random random, Meta meta) {
+    return this::modify;
   }
 
   private SolutionInstance modify(SolutionInstance solutionInstance) {
-    Vehicle vehicle = solutionInstance.pollRandomVehicle(random);
+    Vehicle vehicle = solutionInstance.getRandomVehicle(random);
     if (vehicle == null) {
       return swapTracks(solutionInstance);
     }
@@ -145,10 +155,8 @@ public class SolutionInstanceUnits {
     return solutionInstance;
   }
 
-  public Combinator<List<SolutionInstance>> uniformCrossover(Random random, Meta meta) {
-    return (l1, l2) -> Utils.zip(l1, l2).stream()
-        .map(this::combineLongestTrackInstanceSequence)
-        .collect(Collectors.toList());
+  public Combinator<SolutionInstance> uniformCrossover(Random random, Meta meta) {
+    return (s1, s2) -> combineLongestTrackInstanceSequence(new Pair<>(s1, s2));
   }
 
   /** Create a new solution, using the TrackInstances with most parked vehicles per track. */
@@ -176,17 +184,13 @@ public class SolutionInstanceUnits {
     return new SolutionInstance(instances.first.getProblem(), longer);
   }
 
-  public FitnessEvaluator<List<SolutionInstance>> fitnessEvaluator(
-      Function<List<Double>, Double> function,
+  public FitnessEvaluator<SolutionInstance> fitnessEvaluator(
+      Function<SolutionInstance, Double> function,
       Meta meta) {
-    return l -> function.apply(asDoubles(meta, l));
+    return function::apply;
   }
 
-  public List<Double> asDoubles(Meta meta, List<SolutionInstance> value) {
-    return value.stream().map(Evaluator::new).map(Evaluator::rate).collect(Collectors.toList());
-  }
-
-  public UnitGenerator<List<SolutionInstance>> unitGenerator(Random random, Meta meta) {
-    return new UnitGenerator<>(() -> Collections.singletonList(new SolutionInstance(problem)));
+  public UnitGenerator<SolutionInstance> unitGenerator(Random random, Meta meta) {
+    return new UnitGenerator<>(() -> new GreedySolver(problem, random).solve());
   }
 }
