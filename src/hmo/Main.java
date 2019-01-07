@@ -1,10 +1,12 @@
 package hmo;
 
+import genetic.GeneticAlgorithm.UnitKeyFitnessValue;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
+import hmo.solver.GeneticAlgorithmSolver;
 import hmo.solver.GreedySolver;
 import hmo.solver.Solver;
 import java.io.BufferedWriter;
@@ -22,9 +24,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
-
-import java.io.*;
-import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -35,29 +34,36 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
     final FileReader inputReader = new FileReader("instanca1.txt");
-    final FileWriter outputWriter = new FileWriter("output1.txt");
+//    final FileWriter outputWriter = new FileWriter("output1.txt");
 
     Problem problem = readInput(inputReader);
     LOG.info(String.format("Solving problem with %s cars and %s tracks.",
         problem.getVehicles().size(),
         problem.getTracks().size()));
 
-    SolutionInstance solution;
-    int iteration = 1;
-    do {
-      Solver greedySolver = new GreedySolver(problem, new Random());
-      solution = greedySolver.solve();
-      Evaluator evaluator = new Evaluator(solution);
-      evaluator.rate(iteration++);
-    } while (!solution.getUnassignedVehicles().isEmpty());
+    UnitKeyFitnessValue gaSolution = GeneticAlgorithmSolver.solve(problem);
+    System.out.println(gaSolution.getKey().toString());
 
-    try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
-      for (TrackInstance trackInstance : solution.getTrackInstancesInorder()) {
-//        System.out.println("TI: " + trackInstance.toString());
-        bf.write(trackInstance.toString());
-        bf.newLine();
-      }
-    }
+//    SolutionInstance solution = null;
+//    int totalIterations = 1_000_000;
+//    for (int i = 0; i < totalIterations; i++) {
+//      Solver greedySolver = new GreedySolver(problem, new Random());
+//      solution = greedySolver.solve();
+//      Evaluator evaluator = new Evaluator(solution);
+//      evaluator.rate();
+//
+//      if (solution.getUnassignedVehicles().isEmpty()) {
+//        // found solution without unassigned vehicles.
+//        break;
+//      }
+//    }
+//
+//    try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
+//      for (TrackInstance trackInstance : solution.getTrackInstancesInorder()) {
+//        bf.write(trackInstance.toString());
+//        bf.newLine();
+//      }
+//    }
   }
 
   private static Problem readInput(Reader reader) {

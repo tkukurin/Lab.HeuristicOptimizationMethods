@@ -1,5 +1,6 @@
 package genetic;
 
+import genetic.common.Unit;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.Logger;
@@ -7,26 +8,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/** Maximizes given function. */
 public class GeneticAlgorithm<T> {
-
-  public static class Unit<T> {
-    T value;
-
-    public Unit(T value) {
-      this.value = value;
-    }
-
-    public T getValue() {
-      return value;
-    }
-
-    @Override
-    public String toString() {
-      return "Unit{" +
-          "value=" + value +
-          '}';
-    }
-  }
 
   public static class Pair<A, B> {
     public A first;
@@ -141,12 +124,12 @@ public class GeneticAlgorithm<T> {
     this.logger = logger;
   }
 
-  public Unit<T> iterate() {
+  public UnitKeyFitnessValue iterate() {
     int iterations = 0;
     double error = Double.MAX_VALUE;
 
     while (!iterationBounds.complete(iterations++, error)) {
-      population = evolve(this.population);
+      population = evolve(population);
       double newError = 1 / population.get(0).getValue();
 
       if (newError < error) {
@@ -162,7 +145,7 @@ public class GeneticAlgorithm<T> {
     logger.info("error: " + error);
     logger.info("unit: " + population.get(0));
 
-    return population.get(0).getKey();
+    return population.get(0);
   }
 
   private List<UnitKeyFitnessValue> evolve(List<UnitKeyFitnessValue> population) {
@@ -200,7 +183,9 @@ public class GeneticAlgorithm<T> {
   }
 
   private List<UnitKeyFitnessValue> topN(List<UnitKeyFitnessValue> population, int elitism) {
-    return population.stream().limit(elitism).collect(Collectors.toList());
+    return population.stream()
+        .filter(kv -> Double.isFinite(kv.getValue()))
+        .limit(elitism).collect(Collectors.toList());
   }
 
   private Pair<Unit<T>, Unit<T>> selectParents(List<UnitKeyFitnessValue> units) {
@@ -223,6 +208,11 @@ public class GeneticAlgorithm<T> {
       }
 
       prevFitness = fitness;
+    }
+
+    // e.g. if fitness values are NaN
+    while (parents.size() < 2) {
+      parents.add(units.get(random.nextInt(units.size())).getKey());
     }
 
     return new Pair<>(parents.get(0), parents.get(1));

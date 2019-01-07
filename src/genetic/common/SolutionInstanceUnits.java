@@ -1,45 +1,57 @@
-package genetic.generators;
+package genetic.common;
 
-import genetic.Assignments.Parameters;
+import genetic.GeneticAlgorithm;
 import genetic.GeneticAlgorithm.Combinator;
 import genetic.GeneticAlgorithm.FitnessEvaluator;
 import genetic.GeneticAlgorithm.IterationBounds;
 import genetic.GeneticAlgorithm.Mutator;
 import genetic.GeneticAlgorithm.Pair;
-import genetic.GeneticAlgorithm.Unit;
 import genetic.GeneticAlgorithm.UnitGenerator;
+import genetic.GeneticAlgorithm.UnitKeyFitnessValue;
 import genetic.Meta;
+import hmo.Evaluator;
 import hmo.common.Utils;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
+import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class SolutionInstanceUnits implements Generator<SolutionInstance> {
+public class SolutionInstanceUnits {
 
   private Random random;
+  private Problem problem;
 
-  public SolutionInstanceUnits(Random random) {
+  public SolutionInstanceUnits(Random random, Problem problem) {
     this.random = random;
+    this.problem = problem;
   }
 
-  @Override
-  public List<Unit<List<SolutionInstance>>> evaluate(
+  public List<UnitKeyFitnessValue> evaluate(
       Function<List<Double>, Double> function, Random random,
       IterationBounds iterationBounds, Meta meta, List<Parameters> params) {
-    return null;
+    List<UnitKeyFitnessValue> solution = new ArrayList<>();
+    for (Parameters parameters : params) {
+      GeneticAlgorithm<List<SolutionInstance>> geneticAlgorithm = new GeneticAlgorithm<>(
+          unitGenerator(random, meta), parameters.populationInfo, iterationBounds,
+          fitnessEvaluator(function, meta), uniformCrossover(random, meta),
+          mutator(random, meta), random, Logger.getLogger(SolutionInstanceUnits.class.toString()));
+      solution.add(geneticAlgorithm.iterate());
+    }
+    return solution;
   }
 
-  @Override
   public Mutator<List<SolutionInstance>> mutator(Random random, Meta meta) {
     return vector -> vector.stream().map(this::modify).collect(Collectors.toList());
   }
@@ -53,12 +65,14 @@ public class SolutionInstanceUnits implements Generator<SolutionInstance> {
     for (Track track : solutionInstance.getProblem().getTracks()) {
       if (solutionInstance.canAssign(vehicle, track)) {
         solutionInstance.assign(vehicle, track);
+        break;
       }
     }
 
     return solutionInstance;
   }
 
+  /** Iterates based on departure time from two lists. */
   static class MergeIterator implements Iterator<VehicleInstance> {
     private List<VehicleInstance> first;
     private List<VehicleInstance> second;
@@ -118,27 +132,31 @@ public class SolutionInstanceUnits implements Generator<SolutionInstance> {
         VehicleInstance nextInstance = mergeIterator.next();
         if (!newSecond.canAdd(nextInstance.getVehicle())) {
           solutionInstance.returnToPool(nextInstance.getVehicle());
-          continue;
+          break;
         }
         newSecond.add(nextInstance);
+      }
+
+      while (mergeIterator.hasNext()) {
+        solutionInstance.returnToPool(mergeIterator.next().getVehicle());
       }
     }
 
     return solutionInstance;
   }
 
-  @Override
   public Combinator<List<SolutionInstance>> uniformCrossover(Random random, Meta meta) {
     return (l1, l2) -> Utils.zip(l1, l2).stream()
-        .map(this::combine)
+        .map(this::combineLongestTrackInstanceSequence)
         .collect(Collectors.toList());
   }
 
-  private SolutionInstance combine(Pair<SolutionInstance, SolutionInstance> instances) {
-    List<TrackInstance> trackInstances1 = instances.first.getTrackInstancesInorder();
-    List<TrackInstance> trackInstances2 = instances.second.getTrackInstancesInorder();
-    List<TrackInstance> longer = Utils.zip(trackInstances1, trackInstances2)
-        .stream()
+  /** Create a new solution, using the TrackInstances with most parked vehicles per track. */
+  private SolutionInstance combineLongestTrackInstanceSequence(
+      Pair<SolutionInstance, SolutionInstance> instances) {
+    List<TrackInstance> trackInstances1 = new ArrayList<>(instances.first.getTrackInstances());
+    List<TrackInstance> trackInstances2 = new ArrayList<>(instances.second.getTrackInstances());
+    List<TrackInstance> longer = Utils.zip(trackInstances1, trackInstances2).stream()
         .map(pair -> Utils.argmax(i -> i.getParkedVehicles().size(), pair.first, pair.second))
         .collect(Collectors.toList());
     Set<Vehicle> usedVehicles = new HashSet<>();
@@ -155,44 +173,20 @@ public class SolutionInstanceUnits implements Generator<SolutionInstance> {
       trackInstance.setParkedVehicles(unusedCurrent);
     }
 
-    // TODO
-    SolutionInstance fst = instances.first;
-    SolutionInstance snd = instances.second;
-
-    TrackInstance fstTrack = fst.getRandomTrack(random);
-    TrackInstance sndTrack = snd.getRandomTrack(random, fstTrack.getAllowedVehicleSeries());
-    while (sndTrack == null) {
-      fstTrack = fst.getRandomTrack(random);
-      sndTrack = snd.getRandomTrack(random, fstTrack.getAllowedVehicleSeries());
-    }
-
-    return swap(fst, snd, fstTrack, sndTrack);
+    return new SolutionInstance(instances.first.getProblem(), longer);
   }
 
-  private SolutionInstance swap(
-      SolutionInstance fst, SolutionInstance snd,
-      TrackInstance fstTrack, TrackInstance sndTrack) {
-
-    TrackInstance fillFirst = Utils.argmax(t -> t.getTrack().getTrackLength(), fstTrack, sndTrack);
-    // TODO
-    return null;
-  }
-
-  @Override
   public FitnessEvaluator<List<SolutionInstance>> fitnessEvaluator(
       Function<List<Double>, Double> function,
       Meta meta) {
-    return null;
+    return l -> function.apply(asDoubles(meta, l));
   }
 
-  @Override
-  public UnitGenerator<List<SolutionInstance>> unitGenerator(Random random, Meta meta) {
-
-    return null;
-  }
-
-  @Override
   public List<Double> asDoubles(Meta meta, List<SolutionInstance> value) {
-    return null;
+    return value.stream().map(Evaluator::new).map(Evaluator::rate).collect(Collectors.toList());
+  }
+
+  public UnitGenerator<List<SolutionInstance>> unitGenerator(Random random, Meta meta) {
+    return new UnitGenerator<>(() -> Collections.singletonList(new SolutionInstance(problem)));
   }
 }

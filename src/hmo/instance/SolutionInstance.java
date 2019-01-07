@@ -1,6 +1,7 @@
 package hmo.instance;
 
 import hmo.common.RandomAccessSet;
+import hmo.common.Utils;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
@@ -13,8 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-
-import java.util.*;
 import java.util.stream.Collectors;
 
 public class SolutionInstance {
@@ -32,8 +31,24 @@ public class SolutionInstance {
     this.vehiclePool = new RandomAccessSet<>(problem.getVehicles());
   }
 
+  public SolutionInstance(Problem problem,
+      Collection<TrackInstance> trackInstances) {
+    this.problem = problem;
+    this.trackToIstance = trackInstances.stream().collect(Collectors.toMap(
+        TrackInstance::getTrack, ti -> ti));
+    this.assignedVehicles = trackInstances.stream()
+        .flatMap(ti -> ti.getParkedVehicles().stream())
+        .collect(Collectors.toMap(VehicleInstance::getVehicle, vi -> vi));
+    this.vehiclePool = new RandomAccessSet<>(Utils.difference(
+        problem.getVehicles(), assignedVehicles.keySet()));
+  }
+
   public Problem getProblem() {
     return problem;
+  }
+
+  public Collection<TrackInstance> getTrackInstances() {
+    return trackToIstance.values();
   }
 
   /** @return track instances, ordered by their respective ID low-high. */
@@ -102,15 +117,15 @@ public class SolutionInstance {
 
     // this track is blocked by some tracks.
     // the cars on those other tracks *must* depart *before* this car
-    boolean blockingConditions = problem.getBlockedBy(track.getId())
-        .stream()
-        .map(id -> problem.getTracks().get(id))
-        .map(t -> trackToIstance.get(t))
-        .map(TrackInstance::getParkedVehicles)
-        .anyMatch(pvs -> pvs.stream()
-            .map(VehicleInstance::getVehicle)
-            .map(Vehicle::getDeparture)
-            .allMatch(dt -> dt <= vehicle.getDeparture()));
+//    boolean blockingConditions = problem.getBlockedBy(track.getId())
+//        .stream()
+//        .map(id -> problem.getTracks().get(id))
+//        .map(t -> trackToIstance.get(t))
+//        .map(TrackInstance::getParkedVehicles)
+//        .anyMatch(pvs -> pvs.stream()
+//            .map(VehicleInstance::getVehicle)
+//            .map(Vehicle::getDeparture)
+//            .allMatch(dt -> dt <= vehicle.getDeparture()));
 
     return trackConditions && trackInstanceConditions;
         //&& blockingConditions;
@@ -125,7 +140,7 @@ public class SolutionInstance {
     vehiclePool.remove(vehicle);
   }
 
-  public int getNumOfUsedTracks() {
+  public int nUsedTracks() {
     int used = 0;
     for (TrackInstance track : trackToIstance.values()) {
       if (!track.getParkedVehicles().isEmpty()) {
