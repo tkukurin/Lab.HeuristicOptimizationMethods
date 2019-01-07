@@ -13,7 +13,7 @@ public class Evaluator {
     this.solutionInstance = solutionInstance;
   }
 
-  public double maximizationFunction() {
+  public double fitnessToMaximize() {
     double firstGoal = p1f1() + p2f2() + p3f3();
     double secondGoal = r1g1() + r2g2() + r3g3();
     int numUnused = solutionInstance.getUnassignedVehicles().size();

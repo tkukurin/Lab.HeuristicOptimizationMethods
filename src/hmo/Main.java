@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -32,15 +34,19 @@ public class Main {
   private static  final Logger LOG = Logger.getLogger(Main.class.toString());
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    final FileReader inputReader = new FileReader("instanca1.txt");
+    final String inputFileName = "instanca1.txt";
+    final FileReader inputReader = new FileReader(inputFileName);
 
     Problem problem = readInput(inputReader);
     LOG.info(String.format("Solving problem with %s cars and %s tracks.",
         problem.getVehicles().size(),
         problem.getTracks().size()));
 
+    ExecutorService executorService = Executors
+        .newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     Iterator<Pair<PopulationInfo, SolutionInstance>> gaSolutionIterator =
-        GeneticAlgorithmSolver.solve(problem);
+        GeneticAlgorithmSolver.solve(problem, executorService);
+    double bestFitness = Double.MIN_VALUE;
 
     while (gaSolutionIterator.hasNext()) {
       Pair<PopulationInfo, SolutionInstance> solutionPair = gaSolutionIterator.next();
@@ -58,8 +64,14 @@ public class Main {
           gaSolution.nUsedTracks(),
           problem.getTracks().size()));
 
-      final FileWriter outputWriter = new FileWriter(
-          String.format("output-%s.txt", populationInfo.toString()));
+      double currentFitness = new Evaluator(gaSolution).fitnessToMaximize();
+      String fileName = String.format("output-%s-%s.txt", inputFileName, populationInfo.toString());
+      if (currentFitness > bestFitness) {
+        bestFitness = currentFitness;
+        fileName = String.format("bestOutput-%s", inputFileName);
+      }
+
+      final FileWriter outputWriter = new FileWriter(fileName);
       try (BufferedWriter writer = new BufferedWriter(outputWriter)) {
         for (TrackInstance trackInstance : gaSolution.getTrackInstancesInorder()) {
           writer.write(trackInstance.toString());
@@ -69,6 +81,7 @@ public class Main {
     }
 
     System.out.println("Done.");
+    executorService.shutdown();
 
 //    SolutionInstance solution = null;
 //    int totalIterations = 1_000_000;
@@ -76,7 +89,7 @@ public class Main {
 //      Solver greedySolver = new GreedySolver(problem, new Random());
 //      solution = greedySolver.solve();
 //      Evaluator evaluator = new Evaluator(solution);
-//      evaluator.maximizationFunction();
+//      evaluator.fitnessToMaximize();
 //
 //      if (solution.getUnassignedVehicles().isEmpty()) {
 //        // found solution without unassigned vehicles.

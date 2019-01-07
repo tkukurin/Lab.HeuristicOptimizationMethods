@@ -12,13 +12,10 @@ import hmo.common.Utils;
 import hmo.instance.SolutionInstance;
 import hmo.problem.Problem;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -26,20 +23,19 @@ import java.util.stream.Stream;
 
 public class GeneticAlgorithmSolver {
 
-  public static Iterator<Pair<PopulationInfo, SolutionInstance>> solve(Problem problem) {
-    ExecutorService executorService = Executors
-        .newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-    IterationBounds iterationBounds = new IterationBounds(10_000_000, 1e-6);
+  public static Iterator<Pair<PopulationInfo, SolutionInstance>> solve(
+      Problem problem,
+      ExecutorService executorService) {
+    IterationBounds iterationBounds = new IterationBounds(100_000, 1);
     Meta meta = new Meta(0, 0, 0, 0);
-    Function<SolutionInstance, Double> function = si -> new Evaluator(si).maximizationFunction();
+    Function<SolutionInstance, Double> function = si -> new Evaluator(si).fitnessToMaximize();
 
     List<Parameters> parameters = Arrays.asList(
-      new Parameters(new PopulationInfo(50, 2, 0.88, 0.75)),
-      new Parameters(new PopulationInfo(100, 4, 0.88, 0.85)),
-      new Parameters(new PopulationInfo(500, 5, 0.88, 0.75)),
-      new Parameters(new PopulationInfo(500, 10, 0.7, 0.9)),
-      new Parameters(new PopulationInfo(500, 2, 0.5, 0.5))
+      new Parameters(new PopulationInfo(50, 8, 0.88, 0.75)),
+      new Parameters(new PopulationInfo(100, 12, 0.88, 0.85))
+//      new Parameters(new PopulationInfo(500, 5, 0.88, 0.75)),
+//      new Parameters(new PopulationInfo(500, 10, 0.7, 0.9)),
+//      new Parameters(new PopulationInfo(500, 2, 0.5, 0.5))
     );
 
     Random random = new Random(42L);
@@ -50,7 +46,6 @@ public class GeneticAlgorithmSolver {
         Collectors.toList());
 
     return new Iterator<Pair<PopulationInfo, SolutionInstance>>() {
-
       @Override
       public boolean hasNext() {
         return !results.isEmpty();

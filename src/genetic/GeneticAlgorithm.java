@@ -1,6 +1,7 @@
 package genetic;
 
 import genetic.common.Unit;
+import hmo.common.Utils;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.Logger;
@@ -48,17 +49,29 @@ public class GeneticAlgorithm<T> {
 
   public static class IterationBounds {
     int numIterations;
-    double errorThreshold;
+    double deltaThreshold;
 
-    public IterationBounds(int numIterations, double errorThreshold) {
+
+    public IterationBounds(int numIterations, double deltaThreshold) {
       this.numIterations = numIterations;
-      this.errorThreshold = errorThreshold;
+      this.deltaThreshold = deltaThreshold;
     }
 
     boolean complete(int numIterations, Deque<Double> lastErrors) {
-      Double lastError = lastErrors.peekLast();
-      return numIterations == this.numIterations
-          || (lastError != null && lastError <= this.errorThreshold);
+//      Double lastError = lastErrors.peekLast();
+//      ArrayDeque<Double> errorsShifted = new ArrayDeque<>(lastErrors);
+//      errorsShifted.addFirst(errorsShifted.pollLast());
+//
+//      double maxDeltaBetweenIterations = Utils
+//          .zip(new ArrayList<>(lastErrors), new ArrayList<>(errorsShifted))
+//          .stream()
+//          .map(pair -> Math.abs(pair.first - pair.second))
+//          .max(Comparator.comparingDouble(d -> d))
+//          .orElse(Double.MAX_VALUE);
+
+      return numIterations == this.numIterations;
+//          || lastError <= this.deltaThreshold
+//          || (errorsShifted.size() > 1 && maxDeltaBetweenIterations <= this.deltaThreshold);
     }
   }
 
@@ -137,22 +150,19 @@ public class GeneticAlgorithm<T> {
 
   public UnitAndFitness<T> iterate() {
     int iterations = 0;
-    double error = Double.MAX_VALUE;
-    Deque<Double> errors = new ArrayDeque<>(5);
+    Deque<Double> lastNFitnesses = new ArrayDeque<>(5);
+    lastNFitnesses.add(Double.MAX_VALUE);
 
-    while (!iterationBounds.complete(iterations++, errors)) {
+    while (!iterationBounds.complete(iterations++, lastNFitnesses)) {
       population = evolve(population);
-      errors.offerLast(1 / population.get(0).getFitness());
+      lastNFitnesses.offerLast(population.get(0).getFitness());
 
       if (iterations % 10_000 == 0) {
         logger.info(String.format("Completed %s steps.", iterations));
       }
     }
 
-    logger.info("step: " + iterations);
-    logger.info("error: " + error);
-    logger.info("unit: " + population.get(0));
-
+    logger.info(String.format("Finishing with %s iterations.", iterations));
     return population.get(0);
   }
 

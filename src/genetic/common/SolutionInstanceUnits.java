@@ -19,6 +19,7 @@ import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import hmo.solver.GreedySolver;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -54,10 +55,10 @@ public class SolutionInstanceUnits {
     Stream<Pair<PopulationInfo, Callable<UnitAndFitness<SolutionInstance>>>> callableStream =
         parameters
           .stream()
-          .map(param -> new Pair<>(
-              param.populationInfo,
+          .map(parameter -> new Pair<>(
+              parameter.populationInfo,
               new GeneticAlgorithm<>(
-                  unitGenerator(random, meta), param.populationInfo, iterationBounds,
+                  unitGenerator(random, meta), parameter.populationInfo, iterationBounds,
                   fitnessFunction::apply, uniformCrossover(random, meta),
                   mutator(random, meta), random, logger)))
           .map(ga -> new Pair<>(ga.first, ga.second::iterate));
@@ -125,52 +126,58 @@ public class SolutionInstanceUnits {
     TrackInstance sndTrack = solutionInstance.getRandomTrack(random,
         fstTrack.getAllowedVehicleSeries());
     TrackInstance fillFirst = solutionInstance.getProblem().getBlockedTrack(fstTrack, sndTrack);
-    if (fillFirst != null) {
-      TrackInstance fillSecond = fstTrack == fillFirst ? sndTrack : fstTrack;
-      List<VehicleInstance> fstVehicles = fillFirst.getParkedVehicles();
-      List<VehicleInstance> sndVehicles = fillSecond.getParkedVehicles();
+    if (random.nextBoolean()) {
+      fillFirst = solutionInstance.getProblem().getBlockedTrack(sndTrack, fstTrack);
+    }
 
-      MergeIterator mergeIterator = new MergeIterator(fstVehicles, sndVehicles);
-      TrackInstance newFirst = new TrackInstance(fillFirst.getTrack());
-      TrackInstance newSecond = new TrackInstance(fillSecond.getTrack());
+    TrackInstance fillSecond = fstTrack == fillFirst ? sndTrack : fstTrack;
 
-      while (mergeIterator.hasNext()) {
-        VehicleInstance nextInstance = mergeIterator.next();
-        if (!newFirst.canAdd(nextInstance.getVehicle())) {
-          break;
-        }
-        newFirst.add(nextInstance);
+    List<VehicleInstance> fstVehicles = fillFirst.getParkedVehicles();
+    List<VehicleInstance> sndVehicles = fillSecond.getParkedVehicles();
+
+    MergeIterator mergeIterator = new MergeIterator(fstVehicles, sndVehicles);
+    TrackInstance newFirst = new TrackInstance(fillFirst.getTrack());
+    TrackInstance newSecond = new TrackInstance(fillSecond.getTrack());
+
+    while (mergeIterator.hasNext()) {
+      VehicleInstance nextInstance = mergeIterator.next();
+      if (!newFirst.canAdd(nextInstance.getVehicle())) {
+        break;
       }
+      newFirst.add(nextInstance);
+    }
 
-      while (mergeIterator.hasNext()) {
-        VehicleInstance nextInstance = mergeIterator.next();
-        if (!newSecond.canAdd(nextInstance.getVehicle())) {
-          solutionInstance.returnToPool(nextInstance.getVehicle());
-          break;
-        }
-        newSecond.add(nextInstance);
+    while (mergeIterator.hasNext()) {
+      VehicleInstance nextInstance = mergeIterator.next();
+      if (!newSecond.canAdd(nextInstance.getVehicle())) {
+        solutionInstance.returnToPool(nextInstance.getVehicle());
+        break;
       }
+      newSecond.add(nextInstance);
+    }
 
-      while (mergeIterator.hasNext()) {
-        solutionInstance.returnToPool(mergeIterator.next().getVehicle());
-      }
+    while (mergeIterator.hasNext()) {
+      solutionInstance.returnToPool(mergeIterator.next().getVehicle());
     }
 
     return solutionInstance;
   }
 
   public Combinator<SolutionInstance> uniformCrossover(Random random, Meta meta) {
-    return (s1, s2) -> combineLongestTrackInstanceSequence(new Pair<>(s1, s2));
+    return this::combineLongestTrackInstanceSequence;
   }
 
   /** Create a new solution, using the TrackInstances with most parked vehicles per track. */
   private SolutionInstance combineLongestTrackInstanceSequence(
-      Pair<SolutionInstance, SolutionInstance> instances) {
-    List<TrackInstance> trackInstances1 = new ArrayList<>(instances.first.getTrackInstances());
-    List<TrackInstance> trackInstances2 = new ArrayList<>(instances.second.getTrackInstances());
+      SolutionInstance first, SolutionInstance second) {
+    List<TrackInstance> trackInstances1 = new ArrayList<>(first.getTrackInstances());
+    List<TrackInstance> trackInstances2 = new ArrayList<>(second.getTrackInstances());
     List<TrackInstance> longer = Utils.zip(trackInstances1, trackInstances2).stream()
         .map(pair -> Utils.argmax(i -> i.getParkedVehicles().size(), pair.first, pair.second))
+        // TODO sorting here makes things *much* slower.
+//        .sorted(Comparator.comparingInt(TrackInstance::nParkedVehicles))
         .collect(Collectors.toList());
+
     Set<Vehicle> usedVehicles = new HashSet<>();
     for (TrackInstance trackInstance : longer) {
       List<VehicleInstance> unusedCurrent = new ArrayList<>();
@@ -182,10 +189,12 @@ public class SolutionInstanceUnits {
         usedVehicles.add(vehicleInstance.getVehicle());
         unusedCurrent.add(vehicleInstance);
       }
+
+      // NOTE: mutating trackInstance in longer
       trackInstance.setParkedVehicles(unusedCurrent);
     }
 
-    return new SolutionInstance(instances.first.getProblem(), longer);
+    return new SolutionInstance(first.getProblem(), longer);
   }
 
   public FitnessEvaluator<SolutionInstance> fitnessEvaluator(
