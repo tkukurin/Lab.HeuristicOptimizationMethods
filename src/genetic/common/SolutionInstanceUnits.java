@@ -6,6 +6,7 @@ import genetic.GeneticAlgorithm.FitnessEvaluator;
 import genetic.GeneticAlgorithm.IterationBounds;
 import genetic.GeneticAlgorithm.Mutator;
 import genetic.GeneticAlgorithm.Pair;
+import genetic.GeneticAlgorithm.PopulationInfo;
 import genetic.GeneticAlgorithm.UnitGenerator;
 import genetic.GeneticAlgorithm.UnitAndFitness;
 import genetic.Meta;
@@ -45,21 +46,24 @@ public class SolutionInstanceUnits {
     this.executorService = executorService;
   }
 
-  public List<Future<UnitAndFitness<SolutionInstance>>> evaluate(
+  public Stream<Pair<PopulationInfo, Future<UnitAndFitness<SolutionInstance>>>> evaluate(
       Function<SolutionInstance, Double> fitnessFunction,
       IterationBounds iterationBounds,
       Meta meta,
-      List<Parameters> parameters)
-        throws InterruptedException {
-    Stream<Callable<UnitAndFitness<SolutionInstance>>> callableStream = parameters
-        .stream()
-        .map(param -> new GeneticAlgorithm<>(
-            unitGenerator(random, meta), param.populationInfo, iterationBounds,
-            fitnessFunction::apply, uniformCrossover(random, meta),
-            mutator(random, meta), random, logger))
-        .map(ga -> ga::iterate);
+      List<Parameters> parameters) {
+    Stream<Pair<PopulationInfo, Callable<UnitAndFitness<SolutionInstance>>>> callableStream =
+        parameters
+          .stream()
+          .map(param -> new Pair<>(
+              param.populationInfo,
+              new GeneticAlgorithm<>(
+                  unitGenerator(random, meta), param.populationInfo, iterationBounds,
+                  fitnessFunction::apply, uniformCrossover(random, meta),
+                  mutator(random, meta), random, logger)))
+          .map(ga -> new Pair<>(ga.first, ga.second::iterate));
 
-    return executorService.invokeAll(callableStream.collect(Collectors.toList()));
+    return callableStream.map(pair ->
+        new Pair<>(pair.first, executorService.submit(pair.second)));
   }
 
   public Mutator<SolutionInstance> mutator(Random random, Meta meta) {

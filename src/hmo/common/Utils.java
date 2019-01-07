@@ -29,4 +29,16 @@ public final class Utils {
     diff.removeAll(snd);
     return diff;
   }
+
+  public interface ThrowableSupplier<T> {
+    T get() throws Exception;
+  }
+
+  public static <T> T unchecked(ThrowableSupplier<T> function) {
+    try {
+      return function.get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

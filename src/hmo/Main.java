@@ -1,5 +1,7 @@
 package hmo;
 
+import genetic.GeneticAlgorithm.Pair;
+import genetic.GeneticAlgorithm.PopulationInfo;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.problem.Problem;
@@ -16,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -30,18 +33,42 @@ public class Main {
 
   public static void main(String[] args) throws IOException, InterruptedException {
     final FileReader inputReader = new FileReader("instanca1.txt");
-    final FileWriter outputWriter = new FileWriter("output1.txt");
 
     Problem problem = readInput(inputReader);
     LOG.info(String.format("Solving problem with %s cars and %s tracks.",
         problem.getVehicles().size(),
         problem.getTracks().size()));
 
-    SolutionInstance gaSolution = GeneticAlgorithmSolver.solve(problem);
-    LOG.info(String.format(
-        "%s unassigned vehicles and %s used tracks.",
-        gaSolution.getUnassignedVehicles().size(),
-        gaSolution.nUsedTracks()));
+    Iterator<Pair<PopulationInfo, SolutionInstance>> gaSolutionIterator =
+        GeneticAlgorithmSolver.solve(problem);
+
+    while (gaSolutionIterator.hasNext()) {
+      Pair<PopulationInfo, SolutionInstance> solutionPair = gaSolutionIterator.next();
+      if (solutionPair == null) {
+        continue;
+      }
+
+      PopulationInfo populationInfo = solutionPair.first;
+      SolutionInstance gaSolution = solutionPair.second;
+      LOG.info(String.format(
+          "[%s] %s/%s unassigned vehicles and %s/%s used tracks.",
+          populationInfo.toString(),
+          gaSolution.getUnassignedVehicles().size(),
+          problem.getVehicles().size(),
+          gaSolution.nUsedTracks(),
+          problem.getTracks().size()));
+
+      final FileWriter outputWriter = new FileWriter(
+          String.format("output-%s.txt", populationInfo.toString()));
+      try (BufferedWriter writer = new BufferedWriter(outputWriter)) {
+        for (TrackInstance trackInstance : gaSolution.getTrackInstancesInorder()) {
+          writer.write(trackInstance.toString());
+          writer.newLine();
+        }
+      }
+    }
+
+    System.out.println("Done.");
 
 //    SolutionInstance solution = null;
 //    int totalIterations = 1_000_000;
@@ -57,12 +84,6 @@ public class Main {
 //      }
 //    }
 //
-    try (BufferedWriter bf = new BufferedWriter(outputWriter)) {
-      for (TrackInstance trackInstance : gaSolution.getTrackInstancesInorder()) {
-        bf.write(trackInstance.toString());
-        bf.newLine();
-      }
-    }
   }
 
   private static Problem readInput(Reader reader) {

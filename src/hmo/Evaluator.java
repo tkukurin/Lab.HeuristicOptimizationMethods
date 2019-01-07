@@ -19,7 +19,7 @@ public class Evaluator {
     int numUnused = solutionInstance.getUnassignedVehicles().size();
     int numVehicles = solutionInstance.getProblem().getVehicles().size();
     // we necessarily want *all* cars to be assigned. so add a huge penalty otherwise.
-    return 1.0 / firstGoal + secondGoal + Math.exp(20 * (numVehicles - numUnused));
+    return 100.0 / firstGoal + secondGoal + Math.exp(10 * (numVehicles - numUnused));
   }
 
   private double p1f1() {
