@@ -37,7 +37,7 @@ public class Main {
   private static  final Logger LOG = Logger.getLogger(Main.class.toString());
 
   public static void main(String[] args) throws IOException {
-    final String inputFileName = "dummy-lesstracks.txt";
+    final String inputFileName = "inputs/dummy-lesstracks.txt";
     final FileReader inputReader = new FileReader(inputFileName);
 
     Problem problem = readInput(inputReader);
@@ -126,14 +126,14 @@ public class Main {
       in.nextLine();
       Map<Integer, Set<Integer>> trackIdToVehicleIds = new HashMap<>();
       for (int i = 0; i < vehicleNum; i++) {
-        final int vehicleId = i;
+        final int vehicleId = i + 1;
         // limitation equals 1 if car "i" can be placed on track "j"
         List<Integer> limitation = Arrays.stream(in.nextLine().split(" "))
             .map(Integer::parseInt).collect(Collectors.toList());
         assert limitation.size() == trackNum;
-        IntStream.range(0, limitation.size())
+        IntStream.range(1, limitation.size() + 1)
             .forEach(trackId -> {
-              if (limitation.get(trackId) == 1) {
+              if (limitation.get(trackId - 1) == 1) {
                 Set<Integer> vehicleIds = trackIdToVehicleIds
                     .getOrDefault(trackId, new HashSet<>());
                 vehicleIds.add(vehicleId);
@@ -176,12 +176,14 @@ public class Main {
         int ser = Integer.parseInt(series[i]);
         int dep = Integer.parseInt(departureTimes[i]);
         int lay = Integer.parseInt(layoutTypes[i]);
-        vehicles.add(new Vehicle(i + 1, len, ser, dep, lay));
+        int vehicleId = i + 1;
+        vehicles.add(new Vehicle(vehicleId, len, ser, dep, lay));
       }
 
       for (int i = 0; i < trackNum; i++) {
         int len = Integer.parseInt(trackLengths[i].trim());
-        tracks.add(new Track(i + 1, len, trackIdToVehicleIds.get(i)));
+        int trackId = i + 1;
+        tracks.add(new Track(trackId, len, trackIdToVehicleIds.get(trackId)));
       }
 
       assert vehicles.size() == vehicleNum;
