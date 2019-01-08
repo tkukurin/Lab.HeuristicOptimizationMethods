@@ -13,6 +13,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,8 +39,9 @@ public class Main {
   private static  final Logger LOG = Logger.getLogger(Main.class.toString());
 
   public static void main(String[] args) throws IOException {
-    final String inputFileName = "inputs/dummy-lesstracks.txt";
-    final FileReader inputReader = new FileReader(inputFileName);
+    Path inputFilePath = Paths.get("inputs/dummy-lesstracks.txt");
+    String inputFileName = inputFilePath.getFileName().toString();
+    final FileReader inputReader = new FileReader(inputFilePath.toFile());
 
     Problem problem = readInput(inputReader);
     LOG.info(String.format("Solving problem with %s cars and %s tracks.",

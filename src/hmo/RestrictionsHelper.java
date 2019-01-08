@@ -3,12 +3,15 @@ package hmo;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
+import hmo.problem.Track;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class RestrictionsHelper {
 
@@ -117,22 +120,32 @@ public class RestrictionsHelper {
   }
 
   public boolean vehiclesInBlockedTracksDepartureTimesTest() {
-    List<TrackInstance> allTracks = solutionInstance.getTrackInstancesInorder();
-    for (int i = 0; i < allTracks.size(); i++) {
-      int firstDeparture = allTracks.get(i).getParkedVehicles().get(0).getVehicle().getDeparture();
-      Collection<Integer> blockedBy = solutionInstance.getProblem().getBlockedBy(i);
-      for (Integer n : blockedBy) {
-        int len = allTracks.get(n).getParkedVehicles().size();
+    Map<Integer, TrackInstance> idToTrackInstance = solutionInstance.getTrackInstances()
+        .stream().collect(Collectors.toMap(ti -> ti.getTrack().getId(), ti -> ti));
+
+    for (Entry<Integer, TrackInstance> idAndTrackInstance : idToTrackInstance.entrySet()) {
+      int id = idAndTrackInstance.getKey();
+      TrackInstance trackInstance = idAndTrackInstance.getValue();
+      int firstDeparture = trackInstance.getParkedVehicles().get(0).getVehicle().getDeparture();
+
+      for (Integer blockingId : solutionInstance.getProblem().getBlockedBy(id)) {
+        TrackInstance blockingInstance = idToTrackInstance.get(blockingId);
+        int len = blockingInstance.getParkedVehicles().size();
         if (len == 0) {
           continue;
         }
-        int lastDeparture = allTracks.get(n).getParkedVehicles().get(len - 1).getVehicle()
+
+        int lastDeparture = blockingInstance
+            .getParkedVehicles()
+            .get(len - 1)
+            .getVehicle()
             .getDeparture();
         if (lastDeparture >= firstDeparture) {
           return false;
         }
       }
     }
+
     return true;
   }
 }
