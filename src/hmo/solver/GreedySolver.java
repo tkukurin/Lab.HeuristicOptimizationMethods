@@ -27,27 +27,20 @@ public class GreedySolver extends Solver {
     SolutionInstance solutionInstance = new SolutionInstance(problem);
 
     LOG.info("Starting greedy algorithm.");
-    Set<Vehicle> unassignedVehicles = new HashSet<>();
     while (!solutionInstance.getVehiclePool().isEmpty()) {
-      Vehicle nextVehicle = solutionInstance.pollRandomVehicle(random);
+      Vehicle nextVehicle = solutionInstance.pollUnusedVehicle(random);
 
-      boolean assigned = false;
       for (Track track : problem.getTracks()) {
         if (solutionInstance.canAssign(nextVehicle, track)) {
           solutionInstance.assign(nextVehicle, track);
-          assigned = true;
           break;
         }
-      }
-
-      if (!assigned) {
-        unassignedVehicles.add(nextVehicle);
       }
     }
 
     LOG.info("Completed greedy algorithm.");
     LOG.info(String.format("Assigned %s cars.", solutionInstance.getVehicleInstances().size()));
-    solutionInstance.setVehiclePool(unassignedVehicles);
+    solutionInstance.resetVehiclePool();
     return solutionInstance;
   }
 

@@ -1,15 +1,14 @@
 package genetic.common;
 
+import genetic.GAMeta;
 import genetic.GeneticAlgorithm;
 import genetic.GeneticAlgorithm.Combinator;
-import genetic.GeneticAlgorithm.FitnessEvaluator;
 import genetic.GeneticAlgorithm.IterationBounds;
 import genetic.GeneticAlgorithm.Mutator;
 import genetic.GeneticAlgorithm.Pair;
 import genetic.GeneticAlgorithm.PopulationInfo;
-import genetic.GeneticAlgorithm.UnitGenerator;
 import genetic.GeneticAlgorithm.UnitAndFitness;
-import genetic.Meta;
+import genetic.GeneticAlgorithm.UnitGenerator;
 import hmo.common.Utils;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
@@ -20,17 +19,16 @@ import hmo.problem.Vehicle;
 import hmo.solver.GreedySolver;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SolutionInstanceUnits {
@@ -38,50 +36,48 @@ public class SolutionInstanceUnits {
 
   private Random random;
   private Problem problem;
-  private ExecutorService executorService;
 
-  public SolutionInstanceUnits(Random random, Problem problem,
-      ExecutorService executorService) {
+  public SolutionInstanceUnits(Random random, Problem problem) {
     this.random = random;
     this.problem = problem;
-    this.executorService = executorService;
   }
 
-  public Stream<Pair<PopulationInfo, Future<UnitAndFitness<SolutionInstance>>>> evaluate(
+  public Stream<Pair<PopulationInfo, Callable<UnitAndFitness<SolutionInstance>>>> evaluate(
       Function<SolutionInstance, Double> fitnessFunction,
       IterationBounds iterationBounds,
-      Meta meta,
+      GAMeta meta,
       List<Parameters> parameters) {
-    Stream<Pair<PopulationInfo, Callable<UnitAndFitness<SolutionInstance>>>> callableStream =
-        parameters
-          .stream()
-          .map(parameter -> new Pair<>(
+    return parameters
+      .stream()
+      .map(parameter -> new Pair<>(
+          parameter.populationInfo,
+          new GeneticAlgorithm<>(
+              unitGenerator(meta),
               parameter.populationInfo,
-              new GeneticAlgorithm<>(
-                  unitGenerator(random, meta), parameter.populationInfo, iterationBounds,
-                  fitnessFunction::apply, uniformCrossover(random, meta),
-                  mutator(random, meta), random, logger)))
-          .map(ga -> new Pair<>(ga.first, ga.second::iterate));
-
-    return callableStream.map(pair ->
-        new Pair<>(pair.first, executorService.submit(pair.second)));
+              iterationBounds,
+              fitnessFunction::apply,
+              crossover(meta),
+              mutator(meta),
+              random,
+              logger)))
+      .map(ga -> new Pair<>(ga.first, ga.second::iterate));
   }
 
-  public Mutator<SolutionInstance> mutator(Random random, Meta meta) {
+  public Mutator<SolutionInstance> mutator(GAMeta meta) {
     return this::modify;
   }
 
   private SolutionInstance modify(SolutionInstance solutionInstance) {
-    Vehicle vehicle = solutionInstance.getRandomVehicle(random);
+    solutionInstance.resetVehiclePool();
+    Vehicle vehicle = solutionInstance.pollUnusedVehicle(random);
     if (vehicle == null) {
       return swapTracks(solutionInstance);
     }
 
-    for (Track track : solutionInstance.getProblem().getTracks()) {
-      if (solutionInstance.canAssign(vehicle, track)) {
-        solutionInstance.assign(vehicle, track);
-        break;
-      }
+    List<TrackInstance> allowedTracks = solutionInstance.getAllowedTracks(vehicle);
+    TrackInstance chosenTrack = Utils.randomElement(allowedTracks, random);
+    if (chosenTrack != null && solutionInstance.canAssign(vehicle, chosenTrack.getTrack())) {
+      solutionInstance.assign(vehicle, chosenTrack.getTrack());
     }
 
     return solutionInstance;
@@ -125,85 +121,89 @@ public class SolutionInstanceUnits {
     TrackInstance fstTrack = solutionInstance.getRandomTrack(random);
     TrackInstance sndTrack = solutionInstance.getRandomTrack(random,
         fstTrack.getAllowedVehicleSeries());
-    TrackInstance fillFirst = solutionInstance.getProblem().getBlockedTrack(fstTrack, sndTrack);
-    if (random.nextBoolean()) {
-      fillFirst = solutionInstance.getProblem().getBlockedTrack(sndTrack, fstTrack);
-    }
+    solutionInstance.swapParkedVehicles(fstTrack.getTrack(), sndTrack.getTrack());
 
-    TrackInstance fillSecond = fstTrack == fillFirst ? sndTrack : fstTrack;
-
-    List<VehicleInstance> fstVehicles = fillFirst.getParkedVehicles();
-    List<VehicleInstance> sndVehicles = fillSecond.getParkedVehicles();
-
-    MergeIterator mergeIterator = new MergeIterator(fstVehicles, sndVehicles);
-    TrackInstance newFirst = new TrackInstance(fillFirst.getTrack());
-    TrackInstance newSecond = new TrackInstance(fillSecond.getTrack());
-
-    while (mergeIterator.hasNext()) {
-      VehicleInstance nextInstance = mergeIterator.next();
-      if (!newFirst.canAdd(nextInstance.getVehicle())) {
-        break;
-      }
-      newFirst.add(nextInstance);
-    }
-
-    while (mergeIterator.hasNext()) {
-      VehicleInstance nextInstance = mergeIterator.next();
-      if (!newSecond.canAdd(nextInstance.getVehicle())) {
-        solutionInstance.returnToPool(nextInstance.getVehicle());
-        break;
-      }
-      newSecond.add(nextInstance);
-    }
-
-    while (mergeIterator.hasNext()) {
-      solutionInstance.returnToPool(mergeIterator.next().getVehicle());
-    }
+//    TrackInstance fillFirst = solutionInstance.getProblem().getBlockedTrack(fstTrack, sndTrack);
+//    if (random.nextBoolean()) {
+//      fillFirst = solutionInstance.getProblem().getBlockedTrack(sndTrack, fstTrack);
+//    }
+//
+//    TrackInstance fillSecond = fstTrack == fillFirst ? sndTrack : fstTrack;
+//
+//    List<VehicleInstance> fstVehicles = fillFirst.getParkedVehicles();
+//    List<VehicleInstance> sndVehicles = fillSecond.getParkedVehicles();
+//
+//    MergeIterator mergeIterator = new MergeIterator(fstVehicles, sndVehicles);
+//    TrackInstance newFirst = new TrackInstance(fillFirst.getTrack());
+//    TrackInstance newSecond = new TrackInstance(fillSecond.getTrack());
+//
+//    while (mergeIterator.hasNext()) {
+//      VehicleInstance nextInstance = mergeIterator.next();
+//      if (!newFirst.canAdd(nextInstance.getVehicle())) {
+//        break;
+//      }
+//      newFirst.add(nextInstance);
+//    }
+//
+//    while (mergeIterator.hasNext()) {
+//      VehicleInstance nextInstance = mergeIterator.next();
+//      if (!newSecond.canAdd(nextInstance.getVehicle())) {
+//        solutionInstance.returnToPool(nextInstance.getVehicle());
+//        break;
+//      }
+//      newSecond.add(nextInstance);
+//    }
+//
+//    while (mergeIterator.hasNext()) {
+//      solutionInstance.returnToPool(mergeIterator.next().getVehicle());
+//    }
 
     return solutionInstance;
   }
 
-  public Combinator<SolutionInstance> uniformCrossover(Random random, Meta meta) {
-    return this::combineLongestTrackInstanceSequence;
+  public Combinator<SolutionInstance> crossover(GAMeta meta) {
+    return (first, second) -> {
+      Comparator<TrackInstance> compareNumParkedVehicles = Comparator.comparingInt(
+          TrackInstance::nParkedVehicles);
+      Function<Pair<TrackInstance, TrackInstance>, TrackInstance> chooseLonger = pair -> Utils
+          .argmax(i -> i.getParkedVehicles().size(), pair.first, pair.second);
+      return combineSolutions(
+          first, second, chooseLonger, compareNumParkedVehicles);
+    };
   }
 
-  /** Create a new solution, using the TrackInstances with most parked vehicles per track. */
-  private SolutionInstance combineLongestTrackInstanceSequence(
-      SolutionInstance first, SolutionInstance second) {
-    List<TrackInstance> trackInstances1 = new ArrayList<>(first.getTrackInstances());
-    List<TrackInstance> trackInstances2 = new ArrayList<>(second.getTrackInstances());
-    List<TrackInstance> longer = Utils.zip(trackInstances1, trackInstances2).stream()
-        .map(pair -> Utils.argmax(i -> i.getParkedVehicles().size(), pair.first, pair.second))
-        // TODO sorting here makes things *much* slower.
-//        .sorted(Comparator.comparingInt(TrackInstance::nParkedVehicles))
-        .collect(Collectors.toList());
-
+  private SolutionInstance combineSolutions(
+      SolutionInstance first,
+      SolutionInstance second,
+      Function<Pair<TrackInstance, TrackInstance>, TrackInstance> pickFunction,
+      Comparator<TrackInstance> comparator) {
+    List<TrackInstance> trackInstances1 = new ArrayList<>(first.getTrackInstancesInorder());
+    List<TrackInstance> trackInstances2 = new ArrayList<>(second.getTrackInstancesInorder());
     Set<Vehicle> usedVehicles = new HashSet<>();
-    for (TrackInstance trackInstance : longer) {
-      List<VehicleInstance> unusedCurrent = new ArrayList<>();
-      for (VehicleInstance vehicleInstance : trackInstance.getParkedVehicles()) {
-        if (usedVehicles.contains(vehicleInstance.getVehicle())) {
-          continue;
-        }
+    Map<Track, List<VehicleInstance>> tracks = new HashMap<>();
 
-        usedVehicles.add(vehicleInstance.getVehicle());
-        unusedCurrent.add(vehicleInstance);
-      }
+    Utils.zip(trackInstances1, trackInstances2).stream()
+        .map(pickFunction)
+        .sorted(comparator)
+        .forEach(trackInstance -> {
+          List<VehicleInstance> unusedCurrent = new ArrayList<>();
+          for (VehicleInstance vehicleInstance : trackInstance.getParkedVehicles()) {
+            if (usedVehicles.contains(vehicleInstance.getVehicle())) {
+              continue;
+            }
 
-      // NOTE: mutating trackInstance in longer
-      trackInstance.setParkedVehicles(unusedCurrent);
-    }
+            usedVehicles.add(vehicleInstance.getVehicle());
+            unusedCurrent.add(vehicleInstance);
+          }
 
-    return new SolutionInstance(first.getProblem(), longer);
+          tracks.put(trackInstance.getTrack(), unusedCurrent);
+        });
+
+    return new SolutionInstance(problem, tracks);
   }
 
-  public FitnessEvaluator<SolutionInstance> fitnessEvaluator(
-      Function<SolutionInstance, Double> function,
-      Meta meta) {
-    return function::apply;
-  }
-
-  public UnitGenerator<SolutionInstance> unitGenerator(Random random, Meta meta) {
+  public UnitGenerator<SolutionInstance> unitGenerator(GAMeta meta) {
     return new UnitGenerator<>(() -> new GreedySolver(problem, random).solve());
+//    return new UnitGenerator<>(() -> new SolutionInstance(problem));
   }
 }

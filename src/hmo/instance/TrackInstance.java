@@ -1,5 +1,6 @@
 package hmo.instance;
 
+import hmo.common.TrackUtils;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import java.util.ArrayList;
@@ -11,23 +12,18 @@ import java.util.stream.Collectors;
 public class TrackInstance {
 
   private Track track;
-  private int availableSpace;
+  private double availableSpace;
   private Integer allowedVehicleSeries;
   private List<VehicleInstance> parkedVehicles;
 
   public TrackInstance(Track track) {
-    this.track = track;
-    this.availableSpace = track.getTrackLength();
-    this.parkedVehicles = new ArrayList<>();
-    this.allowedVehicleSeries = null;
+    this(track, Collections.emptyList());
   }
 
   public TrackInstance(Track track, List<VehicleInstance> parkedVehicles) {
     this.track = track;
-    this.availableSpace =
-        track.getTrackLength() - parkedVehicles.stream().map(v -> v.getVehicle().getVehicleLength())
-            .reduce((i, j) -> i + j).orElse(0);
-    this.parkedVehicles = parkedVehicles;
+    this.availableSpace = track.getTrackLength() - TrackUtils.parkLength(parkedVehicles);
+    this.parkedVehicles = new ArrayList<>(parkedVehicles);
     this.allowedVehicleSeries = parkedVehicles.isEmpty()
         ? null : parkedVehicles.get(0).getVehicle().getSeries();
   }
@@ -40,7 +36,7 @@ public class TrackInstance {
     return track;
   }
 
-  public boolean add(VehicleInstance vehicleInstance) {
+  boolean add(VehicleInstance vehicleInstance) {
     assert canAdd(vehicleInstance.getVehicle());
 
     // condition (7): vehicles should be sorted in departing order
@@ -48,20 +44,21 @@ public class TrackInstance {
   }
 
   public boolean canAdd(Vehicle vehicle) {
-    return availableSpace >= vehicle.getVehicleLength()
+    return availableSpace >= vehicle.getVehicleLength() + deltaSpaceForNextVehicle()
         && track.getAllowedVehicleIds().contains(vehicle.getId())
-        // a track must have only one type of series
         && (allowedVehicleSeries == null || allowedVehicleSeries == vehicle.getSeries());
   }
 
-  public VehicleInstance popRandom(Random random) {
-    VehicleInstance vehicleInstance = pop(random.nextInt(nParkedVehicles()));
-    return vehicleInstance;
+  VehicleInstance popRandom(Random random) {
+    return pop(random.nextInt(nParkedVehicles()));
   }
 
-  public VehicleInstance pop(int index) {
+  VehicleInstance pop(int index) {
     VehicleInstance vehicleInstance = parkedVehicles.remove(index);
     availableSpace += vehicleInstance.getVehicle().getVehicleLength();
+    if (parkedVehicles.size() >= 1) {
+      availableSpace += TrackUtils.SPACE_BETWEEN_CARS;
+    }
     if (parkedVehicles.isEmpty()) {
       allowedVehicleSeries = null;
     }
@@ -72,7 +69,7 @@ public class TrackInstance {
     return parkedVehicles.size();
   }
 
-  /** @return parked vehicles, sorted by departure time */
+  /** @return immutable view of parked vehicles, sorted by departure time */
   public List<VehicleInstance> getParkedVehicles() {
     // condition (7): vehicles should be sorted in departing order
     // NOTE: this is currently handled from within #add
@@ -80,11 +77,19 @@ public class TrackInstance {
     return Collections.unmodifiableList(parkedVehicles);
   }
 
-  public void setParkedVehicles(List<VehicleInstance> unusedCurrent) {
-    parkedVehicles = unusedCurrent;
-  }
+  boolean setParkedVehicles(List<VehicleInstance> vehicleInstances) {
+    double parkingLength = TrackUtils.parkLength(vehicleInstances);
+    if (parkingLength > track.getTrackLength()
+        || !TrackUtils.allIdsAllowed(vehicleInstances, track)) {
+      return false;
+    }
 
-  // no equals or hashcode for now.
+    parkedVehicles = vehicleInstances;
+    availableSpace = track.getTrackLength() - parkingLength;
+    allowedVehicleSeries = vehicleInstances.isEmpty() ?
+        null : vehicleInstances.get(0).getVehicle().getSeries();
+    return true;
+  }
 
   @Override
   public String toString() {
@@ -95,6 +100,7 @@ public class TrackInstance {
         .collect(Collectors.joining(" "));
   }
 
+  /** assumes all validity checks have already been performed. */
   private boolean insertSortedByDeparture(VehicleInstance vehicleInstance) {
     Vehicle vehicleToInsert = vehicleInstance.getVehicle();
 
@@ -107,8 +113,12 @@ public class TrackInstance {
     }
 
     parkedVehicles.add(i, vehicleInstance);
-    availableSpace -= vehicleToInsert.getVehicleLength();
+    availableSpace -= (vehicleToInsert.getVehicleLength() + deltaSpaceForNextVehicle());
     allowedVehicleSeries = vehicleToInsert.getSeries();
     return true;
+  }
+
+  private double deltaSpaceForNextVehicle() {
+    return parkedVehicles.isEmpty() ? 0 : TrackUtils.SPACE_BETWEEN_CARS;
   }
 }

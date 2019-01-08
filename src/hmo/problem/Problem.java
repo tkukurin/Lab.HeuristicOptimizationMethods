@@ -54,7 +54,7 @@ public class Problem {
     return null;
   }
 
-  public void setTotalTrackLength() {
+  private void setTotalTrackLength() {
     int len = 0;
     for (Track track : tracks) {
       len += track.getTrackLength();
@@ -62,7 +62,7 @@ public class Problem {
     this.totalTrackLength = len;
   }
 
-  public void setTotalVehicleLength() {
+  private void setTotalVehicleLength() {
     int len = 0;
     for (Vehicle vehicle : vehicles) {
       len += vehicle.getVehicleLength();

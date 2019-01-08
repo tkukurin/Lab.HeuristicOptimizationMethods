@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -40,5 +41,12 @@ public final class Utils {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static <T> T randomElement(List<T> list, Random random) {
+    if (list.isEmpty()) {
+      return null;
+    }
+    return list.get(random.nextInt(list.size()));
   }
 }

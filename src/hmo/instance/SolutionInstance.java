@@ -1,46 +1,51 @@
 package hmo.instance;
 
 import hmo.common.RandomAccessSet;
+import hmo.common.TrackUtils;
 import hmo.common.Utils;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SolutionInstance {
 
   private Problem problem;
   private Map<Vehicle, VehicleInstance> assignedVehicles;
-  private Map<Track, TrackInstance> trackToIstance;
+  private Map<Track, TrackInstance> trackToInstance;
   private RandomAccessSet<Vehicle> vehiclePool;
 
   public SolutionInstance(Problem problem) {
     this.problem = problem;
-    this.trackToIstance = problem.getTracks().stream().map(TrackInstance::new)
+    this.trackToInstance = problem.getTracks().stream().map(TrackInstance::new)
         .collect(Collectors.toMap(TrackInstance::getTrack, ti -> ti));
-    this.assignedVehicles = new HashMap<>(this.problem.getVehicles().size());
+    this.assignedVehicles = new HashMap<>(problem.getVehicles().size());
     this.vehiclePool = new RandomAccessSet<>(problem.getVehicles());
   }
 
-  public SolutionInstance(Problem problem,
-      Collection<TrackInstance> trackInstances) {
+  public SolutionInstance(Problem problem, Map<Track, List<VehicleInstance>> tracks) {
     this.problem = problem;
-    this.trackToIstance = trackInstances.stream().collect(Collectors.toMap(
-        TrackInstance::getTrack, ti -> ti));
-    this.assignedVehicles = trackInstances.stream()
-        .flatMap(ti -> ti.getParkedVehicles().stream())
+    this.trackToInstance = problem.getTracks().stream()
+        .map(TrackInstance::new)
+        .peek(ti -> ti.setParkedVehicles(tracks.getOrDefault(ti.getTrack(), new ArrayList<>())))
+        .collect(Collectors.toMap(TrackInstance::getTrack, ti -> ti));
+    this.assignedVehicles = tracks.values().stream().flatMap(Collection::stream)
         .collect(Collectors.toMap(VehicleInstance::getVehicle, vi -> vi));
     this.vehiclePool = new RandomAccessSet<>(Utils.difference(
-        problem.getVehicles(), assignedVehicles.keySet()));
+        problem.getVehicles(),
+        tracks.values().stream()
+            .flatMap(Collection::stream)
+            .map(VehicleInstance::getVehicle)
+            .collect(Collectors.toList())));
   }
 
   public Problem getProblem() {
@@ -48,14 +53,42 @@ public class SolutionInstance {
   }
 
   public Collection<TrackInstance> getTrackInstances() {
-    return trackToIstance.values();
+    return trackToInstance.values();
   }
 
   /** @return track instances, ordered by their respective ID low-high. */
   public List<TrackInstance> getTrackInstancesInorder() {
-    return trackToIstance.values().stream()
+    return trackToInstance.values().stream()
         .sorted(Comparator.comparingInt(ti -> ti.getTrack().getId()))
         .collect(Collectors.toList());
+  }
+
+  public Vehicle pollUsedVehicle(Track track, Random random) {
+    VehicleInstance vehicleInstance = trackToInstance.get(track).popRandom(random);
+    if (vehicleInstance == null) {
+      return null;
+    }
+    return markUnassigned(vehicleInstance.getVehicle());
+  }
+
+  public Collection<Vehicle> pollUsedVehicles(Track track, Predicate<Vehicle> pollCondition) {
+    TrackInstance trackInstance = trackToInstance.get(track);
+
+    List<Vehicle> vehiclesToReturn = new ArrayList<>();
+    List<VehicleInstance> vehiclesRemainingInTrack = new ArrayList<>();
+
+    for (VehicleInstance parked : trackInstance.getParkedVehicles()) {
+      Vehicle vehicle = parked.getVehicle();
+
+      if (pollCondition.test(vehicle)) {
+        vehiclesToReturn.add(markUnassigned(vehicle));
+      } else {
+        vehiclesRemainingInTrack.add(parked);
+      }
+    }
+
+    trackInstance.setParkedVehicles(vehiclesRemainingInTrack);
+    return vehiclesToReturn;
   }
 
   public Collection<VehicleInstance> getVehicleInstances() {
@@ -66,29 +99,21 @@ public class SolutionInstance {
     return vehiclePool;
   }
 
-
-  public Vehicle getRandomVehicle(Random random) {
-    if (vehiclePool.size() == 0) {
-      return null;
-    }
-
-    return vehiclePool.get(random.nextInt(vehiclePool.size()));
-  }
-
-  public Vehicle pollRandomVehicle(Random random) {
+  public Vehicle pollUnusedVehicle(Random random) {
     return vehiclePool.pollRandom(random);
   }
 
-  public void returnToPool(Vehicle ... vehicles) {
-    // ??
-//    for (Vehicle vehicle : vehicles)
-//      assignedVehicles.remove(vehicle);
-    vehiclePool.addAll(Arrays.asList(vehicles));
+  public List<TrackInstance> getAllowedTracks(Vehicle vehicle) {
+    // move this to a map if too slow.
+    return trackToInstance.values().stream()
+        .filter(ti -> TrackUtils.validSeries(vehicle, ti))
+        .filter(ti -> ti.canAdd(vehicle))
+        .collect(Collectors.toList());
   }
 
   public TrackInstance getRandomTrack(Random random) {
-    int nTracks = trackToIstance.size();
-    return trackToIstance.get(problem.getTracks().get(random.nextInt(nTracks)));
+    int nTracks = trackToInstance.size();
+    return trackToInstance.get(problem.getTracks().get(random.nextInt(nTracks)));
   }
 
   public TrackInstance getRandomTrack(Random random, Integer seriesType) {
@@ -96,7 +121,8 @@ public class SolutionInstance {
       return getRandomTrack(random);
     }
 
-    List<TrackInstance> validTracks = trackToIstance.values()
+    // move this to a map if too slow.
+    List<TrackInstance> validTracks = trackToInstance.values()
         .stream()
         .filter(ti ->
             ti.getAllowedVehicleSeries() == null
@@ -110,51 +136,71 @@ public class SolutionInstance {
     return validTracks.get(random.nextInt(nTracks));
   }
 
-  /** @return all vehicles which haven't been assigned to any tracks so far */
-  public Collection<Vehicle> getUnassignedVehicles() {
-    Set<Vehicle> cars = new HashSet<>(problem.getVehicles());
-    cars.removeAll(assignedVehicles.keySet());
-    return cars;
+  public RandomAccessSet<Vehicle> resetVehiclePool() {
+    Collection<Vehicle> unassigned = getUnassignedVehicles();
+    vehiclePool = new RandomAccessSet<>(unassigned);
+    return vehiclePool;
   }
 
-  // (7) departure of any vehicle that comes first must be before the departure of another vehicle
-  // -> this is handled from within TrackInstance
+  /** @return all vehicles which haven't been assigned to any tracks so far */
+  public Collection<Vehicle> getUnassignedVehicles() {
+    return Utils.difference(problem.getVehicles(), assignedVehicles.keySet());
+  }
 
-  // TODO this does not take into account the fact that
-  // (8) blocking tracks must come before the tracks that they block
+  // handled from within TrackInstance: (7) departure of any vehicle that comes first must be
+  // before the departure of another vehicle
+  // not taken into account: (8) blocking tracks must come before the tracks that they block
+
   public boolean canAssign(Vehicle vehicle, Track track) {
     boolean trackConditions = track.getAllowedVehicleIds().contains(vehicle.getId())
         && track.getTrackLength() >= vehicle.getVehicleLength();
-    boolean trackInstanceConditions = trackToIstance.get(track).canAdd(vehicle);
-
-    // this track is blocked by some tracks.
-    // the cars on those other tracks *must* depart *before* this car
-//    boolean blockingConditions = problem.getBlockedBy(track.getId())
-//        .stream()
-//        .map(id -> problem.getTracks().get(id))
-//        .map(t -> trackToIstance.get(t))
-//        .map(TrackInstance::getParkedVehicles)
-//        .anyMatch(pvs -> pvs.stream()
-//            .map(VehicleInstance::getVehicle)
-//            .map(Vehicle::getDeparture)
-//            .allMatch(dt -> dt <= vehicle.getDeparture()));
-
+    boolean trackInstanceConditions = trackToInstance.get(track).canAdd(vehicle);
     return trackConditions && trackInstanceConditions;
-        //&& blockingConditions;
+  }
+
+  public Stream<TrackInstance> getBlockers(Vehicle vehicle, Track track) {
+    return problem.getBlockedBy(track.getId())
+        .stream()
+        .map(id -> problem.getTracks().get(id))
+        .map(t -> trackToInstance.get(t))
+        .filter(ti -> ti.getParkedVehicles().stream()
+            .map(VehicleInstance::getVehicle)
+            .map(Vehicle::getDeparture)
+            // if any vehicle departs after the current vehicle and
+            // that vehicle's track is blocking the current track
+            .anyMatch(dt -> dt > vehicle.getDeparture()));
   }
 
   public void assign(Vehicle vehicle, Track track) {
     VehicleInstance vehicleInstance = new VehicleInstance(vehicle, track);
-    TrackInstance trackInstance = trackToIstance.get(track);
+    TrackInstance trackInstance = trackToInstance.get(track);
     trackInstance.add(vehicleInstance);
 
-    assignedVehicles.put(vehicle, vehicleInstance);
-    vehiclePool.remove(vehicle);
+    markAssigned(vehicle, vehicleInstance);
+  }
+
+  public void swapParkedVehicles(Track first, Track second) {
+    TrackInstance firstInstance = trackToInstance.get(first);
+    TrackInstance secondInstance = trackToInstance.get(second);
+
+    List<VehicleInstance> firstVehicles = firstInstance.getParkedVehicles();
+    List<VehicleInstance> secondVehicles = secondInstance.getParkedVehicles();
+
+    if (TrackUtils.canSetVehicles(firstVehicles, secondInstance.getTrack())
+      && TrackUtils.canSetVehicles(secondVehicles, firstInstance.getTrack())) {
+
+      firstInstance.setParkedVehicles(secondVehicles.stream()
+          .map(vi -> new VehicleInstance(vi.getVehicle(), first))
+          .collect(Collectors.toList()));
+      secondInstance.setParkedVehicles(firstVehicles.stream()
+          .map(vi -> new VehicleInstance(vi.getVehicle(), second))
+          .collect(Collectors.toList()));
+    }
   }
 
   public int nUsedTracks() {
     int used = 0;
-    for (TrackInstance track : trackToIstance.values()) {
+    for (TrackInstance track : trackToInstance.values()) {
       if (!track.getParkedVehicles().isEmpty()) {
         used++;
       }
@@ -162,7 +208,23 @@ public class SolutionInstance {
     return used;
   }
 
-  public void setVehiclePool(Collection<Vehicle> vehiclePool) {
-    this.vehiclePool = new RandomAccessSet<>(vehiclePool);
+//  public void setParkedVehicles(Track track, List<VehicleInstance> vehicles) {
+//    TrackInstance trackInstance = new TrackInstance(track);
+//    trackInstance.setParkedVehicles(vehicles);
+//    trackToInstance.put(track, trackInstance);
+//    assignedVehicles.putAll(vehicles.stream().collect(
+//        Collectors.toMap(VehicleInstance::getVehicle, v -> v)));
+//  }
+
+  private void markAssigned(Vehicle vehicle, VehicleInstance vehicleInstance) {
+    assignedVehicles.put(vehicle, vehicleInstance);
+    vehiclePool.remove(vehicle);
+  }
+
+  private Vehicle markUnassigned(Vehicle vehicle) {
+    assignedVehicles.remove(vehicle);
+    vehiclePool.add(vehicle);
+
+    return vehicle;
   }
 }

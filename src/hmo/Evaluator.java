@@ -1,5 +1,6 @@
 package hmo;
 
+import hmo.common.TrackUtils;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
@@ -28,17 +29,19 @@ public class Evaluator {
     int previousType = -1;
     for (TrackInstance track : solutionInstance.getTrackInstancesInorder()) {
       List<VehicleInstance> veh = track.getParkedVehicles();
-      if (!veh.isEmpty()) {
-        int temp = veh.get(0).getVehicle().getSeries();
-        if (first) {
-          first = false;
-          previousType = temp;
-        } else {
-          if (temp != previousType) {
-            f1++;
-          }
-          previousType = temp;
+      if (veh.isEmpty()) {
+        continue;
+      }
+
+      int temp = veh.get(0).getVehicle().getSeries();
+      if (first) {
+        first = false;
+        previousType = temp;
+      } else {
+        if (temp != previousType) {
+          f1++;
         }
+        previousType = temp;
       }
     }
     //System.out.println("p1f1=" + Math.pow(solutionInstance.nUsedTracks() - 1, -1) * (double) f1);
@@ -52,22 +55,16 @@ public class Evaluator {
   }
 
   private double p3f3() {
-    int totCap = solutionInstance.getProblem().getTotalTrackLength();
-    int totLen = solutionInstance.getProblem().getTotalVehicleLength();
-    double f3 = 0.;
+    int totalTrackLength = solutionInstance.getProblem().getTotalTrackLength();
+    int totalVehicleLength = solutionInstance.getProblem().getTotalVehicleLength();
+    double f3 = 0;
     for (TrackInstance track : solutionInstance.getTrackInstancesInorder()) {
-      double tot = (double) track.getTrack().getTrackLength();
-      double used = 0.;
-      for (VehicleInstance vehicle : track.getParkedVehicles()) {
-        used += (double) vehicle.getVehicle().getVehicleLength();
-      }
-      used += 0.5 * (double) track.getParkedVehicles().size() - 1;
-      if (used > 0.) {
-        f3 += tot - used;
+      if (!track.getParkedVehicles().isEmpty()) {
+        f3 += track.getTrack().getTrackLength() - TrackUtils.parkLength(track.getParkedVehicles());
       }
     }
     //System.out.println("p3f3=" + Math.pow(totCap - totLen, -1) * f3);
-    return Math.pow(totCap - totLen, -1) * f3;
+    return Math.pow(totalTrackLength - totalVehicleLength, -1) * f3;
   }
 
   private double r1g1() {

@@ -1,38 +1,27 @@
 package hmo.problem;
 
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Track {
 
   private int id;
   private int trackLength;
-  private Collection<Integer> allowedVehicleIds;
-  private Collection<Track> blockedByTrack;
-  private Collection<Track> blocksTrack;
+  private Set<Integer> allowedVehicleIds;
 
-  public Track(int id, int trackLength, Collection<Integer> allowedVehicleIds) {
+  public Track(int id, int trackLength, Set<Integer> allowedVehicleIds) {
     this.id = id;
     this.trackLength = trackLength;
-    this.allowedVehicleIds = allowedVehicleIds;
-  }
-
-  // TODO this maybe isn't necessary
-  public Track(int id, int trackLength, Collection<Integer> allowedTypes,
-      Collection<Track> blockedByTrack, Collection<Track> blocksTrack) {
-    this.id = id;
-    this.allowedVehicleIds = allowedTypes;
-    this.trackLength = trackLength;
-    this.blockedByTrack = blockedByTrack;
-    this.blocksTrack = blocksTrack;
+    this.allowedVehicleIds = Collections.unmodifiableSet(allowedVehicleIds);
   }
 
   public int getId() {
     return id;
   }
 
-  public Collection<Integer> getAllowedVehicleIds() {
+  public Set<Integer> getAllowedVehicleIds() {
     return allowedVehicleIds;
   }
 

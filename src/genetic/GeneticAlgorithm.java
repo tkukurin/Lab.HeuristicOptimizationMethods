@@ -162,7 +162,7 @@ public class GeneticAlgorithm<T> {
       }
     }
 
-    logger.info(String.format("Finishing with %s iterations.", iterations));
+    logger.info(String.format("Finishing with %s iterations.", iterations - 1));
     return population.get(0);
   }
 
