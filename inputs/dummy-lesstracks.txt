@@ -1,0 +1,20 @@
+5
+3
+# duljine vozila
+1 1 1 1 1
+# serija vozila
+1 1 2 2 3
+# ogranicenja za svako vozilo
+1 1 1
+1 1 1
+1 1 1
+1 1 1
+1 1 1
+# duljine traka
+3 2 5
+# vrijeme polaska za svako vozilo
+2 3 3 4 4
+# tip rasporeda za svako vozilo
+1 1 1 1 1
+# blokade
+1 2
