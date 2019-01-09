@@ -50,6 +50,9 @@ public class TrackInstance {
   }
 
   VehicleInstance popRandom(Random random) {
+    if (nParkedVehicles() == 0) {
+      return null;
+    }
     return pop(random.nextInt(nParkedVehicles()));
   }
 

@@ -1,6 +1,7 @@
 package hmo.common;
 
 import genetic.GeneticAlgorithm.Pair;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -48,5 +49,14 @@ public final class Utils {
       return null;
     }
     return list.get(random.nextInt(list.size()));
+  }
+
+  public static <T> boolean containsAny(Set<T> set, Collection<T> objects) {
+    for (T object : objects) {
+      if (set.contains(object)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

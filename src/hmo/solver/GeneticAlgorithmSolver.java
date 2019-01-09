@@ -6,6 +6,8 @@ import genetic.GeneticAlgorithm.PopulationInfo;
 import genetic.GeneticAlgorithm.UnitAndFitness;
 import genetic.GAMeta;
 import genetic.common.Parameters;
+import genetic.common.RandomizedGenerator;
+import genetic.common.SolutionInstanceGenerator;
 import genetic.common.SolutionInstanceUnits;
 import hmo.Evaluator;
 import hmo.common.Utils;
@@ -27,23 +29,21 @@ public class GeneticAlgorithmSolver {
   public static Iterator<Pair<PopulationInfo, SolutionInstance>> solve(
       Problem problem,
       ExecutorService executorService) {
-    IterationBounds iterationBounds = new IterationBounds(50, 1);
+    IterationBounds iterationBounds = new IterationBounds(2_000, 1);
+    Random random = new Random(42L);
     GAMeta meta = new GAMeta();
-    Function<SolutionInstance, Double> function = si -> new Evaluator(si).fitnessToMaximize();
-
     List<Parameters> parameters = Arrays.asList(
-      new Parameters(new PopulationInfo(50, 2, 0.88, 0.75))
+      new Parameters(new PopulationInfo(50, 3, 0.88, 0.88))
 //      new Parameters(new PopulationInfo(100, 2, 0.88, 0.85))
 //      new Parameters(new PopulationInfo(500, 5, 0.88, 0.75)),
 //      new Parameters(new PopulationInfo(500, 10, 0.7, 0.9)),
 //      new Parameters(new PopulationInfo(500, 2, 0.5, 0.5))
     );
 
-    Random random = new Random(42L);
-    SolutionInstanceUnits generator = new SolutionInstanceUnits(random, problem);
+    SolutionInstanceGenerator generator = new RandomizedGenerator(random, problem, meta);
 
     Stream<Pair<PopulationInfo, Future<UnitAndFitness<SolutionInstance>>>> resultsStream =
-        generator.evaluate(function, iterationBounds, meta, parameters)
+        generator.evaluate(iterationBounds, parameters)
             .map(pair -> new Pair<>(pair.first,
                 CompletableFuture.completedFuture(
                     Utils.unchecked(() -> pair.second.call()))));

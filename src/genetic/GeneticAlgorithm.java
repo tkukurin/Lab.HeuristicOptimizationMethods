@@ -2,6 +2,7 @@ package genetic;
 
 import genetic.common.Unit;
 import hmo.common.Utils;
+import hmo.instance.SolutionInstance;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.Logger;
@@ -57,7 +58,7 @@ public class GeneticAlgorithm<T> {
       this.deltaThreshold = deltaThreshold;
     }
 
-    boolean complete(int numIterations, Deque<Double> lastErrors) {
+    boolean complete(int numIterations) {
 //      Double lastError = lastErrors.peekLast();
 //      ArrayDeque<Double> errorsShifted = new ArrayDeque<>(lastErrors);
 //      errorsShifted.addFirst(errorsShifted.pollLast());
@@ -150,15 +151,23 @@ public class GeneticAlgorithm<T> {
 
   public UnitAndFitness<T> iterate() {
     int iterations = 0;
-    Deque<Double> lastNFitnesses = new ArrayDeque<>(5);
-    lastNFitnesses.add(Double.MAX_VALUE);
+    UnitAndFitness<T> best = new UnitAndFitness<>(new Unit<>(null), 0.0);
 
-    while (!iterationBounds.complete(iterations++, lastNFitnesses)) {
+    while (!iterationBounds.complete(iterations++)) {
       population = evolve(population);
-      lastNFitnesses.offerLast(population.get(0).getFitness());
+      Double currentBest = population.get(0).getFitness();
 
-      if (iterations % 10_000 == 0) {
-        logger.info(String.format("Completed %s steps.", iterations));
+      if (currentBest > best.getFitness()) {
+        best = population.get(0);
+      }
+
+      if (iterations % 1_00 == 0) {
+        logger.info(String.format(
+            "Completed %s steps. Best fitness: %s", iterations, best.getFitness()));
+      }
+
+      if (iterations % 5000 == 0) {
+        System.out.println(population.get(0).getUnit().value.toString());
       }
     }
 
@@ -181,7 +190,7 @@ public class GeneticAlgorithm<T> {
         child = mutator.apply(child);
       }
 
-      newPopulation.add(new UnitAndFitness<>(child, fitnessEvaluator.apply(child.value)));
+      newPopulation.add(new UnitAndFitness<>(child, 0.0));//fitnessEvaluator.apply(child.value)));
     }
 
     return sortedByDescendingFitness(newPopulation);
@@ -196,13 +205,17 @@ public class GeneticAlgorithm<T> {
   }
 
   private List<UnitAndFitness<T>> sortedByDescendingFitness(Stream<UnitAndFitness<T>> stream) {
-    return stream.sorted(Comparator.comparingDouble(UnitAndFitness<T>::getFitness).reversed())
+    return stream
+//        .filter(u -> Double.isFinite(u.getFitness()))
+        .map(uf -> new UnitAndFitness<>(
+            uf.getUnit(), fitnessEvaluator.apply(uf.getUnit().getValue())))
+        .sorted(Comparator.comparingDouble(UnitAndFitness<T>::getFitness).reversed())
         .collect(Collectors.toList());
   }
 
   private List<UnitAndFitness<T>> topN(List<UnitAndFitness<T>> population, int elitism) {
     return population.stream()
-        .filter(kv -> Double.isFinite(kv.getFitness()))
+//        .filter(kv -> Double.isFinite(kv.getFitness()))
         .limit(elitism).collect(Collectors.toList());
   }
 

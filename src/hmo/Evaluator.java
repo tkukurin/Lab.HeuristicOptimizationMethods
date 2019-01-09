@@ -4,7 +4,11 @@ import hmo.common.TrackUtils;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
+import hmo.problem.Vehicle;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 public class Evaluator {
 
@@ -15,12 +19,63 @@ public class Evaluator {
   }
 
   public double fitnessToMaximize() {
-    double firstGoal = p1f1() + p2f2() + p3f3();
-    double secondGoal = r1g1() + r2g2() + r3g3();
-    int numUnused = solutionInstance.getUnassignedVehicles().size();
-    int numVehicles = solutionInstance.getProblem().getVehicles().size();
-    // we necessarily want *all* cars to be assigned. so add a huge penalty otherwise.
-    return 100.0 / firstGoal + secondGoal + Math.exp(10 * (numVehicles - numUnused));
+    solutionInstance.resetVehiclePool();
+
+    double minimizationGoal = p1f1() + p2f2() + p3f3();
+    double maximizationGoal = r1g1() + r2g2() + r3g3();
+    maximizationGoal = Double.isFinite(maximizationGoal) ? maximizationGoal : 0;
+    minimizationGoal = Double.isFinite(minimizationGoal) ? minimizationGoal : Double.MAX_VALUE;
+    final double coef = 10;
+    double numUsed = solutionInstance.getAssignedVehicles().size();
+    double numVehicles = solutionInstance.getProblem().getVehicles().size();
+    double result =
+        1.0 / (minimizationGoal + 1)
+        + maximizationGoal
+        + Math.pow(1.5, coef * numUsed)
+        + Math.pow(10, - coef * blockers());
+    if (Double.isInfinite(result)) {
+      System.out.println("INF");
+    }
+    return result;
+  }
+
+  private double blockers() {
+    double count = 0;
+    Map<Integer, TrackInstance> idToTrackInstance = solutionInstance.getTrackInstances()
+        .stream().collect(Collectors.toMap(ti -> ti.getTrack().getId(), ti -> ti));
+
+    for (Entry<Integer, TrackInstance> idAndTrackInstance : idToTrackInstance.entrySet()) {
+      int id = idAndTrackInstance.getKey();
+      TrackInstance trackInstance = idAndTrackInstance.getValue();
+      if (trackInstance.getParkedVehicles().isEmpty()) {
+        continue;
+      }
+
+      int firstDeparture = trackInstance.getParkedVehicles().get(0).getVehicle().getDeparture();
+      for (Integer blockingId : solutionInstance.getProblem().getBlockedBy(id)) {
+        TrackInstance blockingInstance = idToTrackInstance.get(blockingId);
+        int len = blockingInstance.getParkedVehicles().size();
+        if (len == 0) {
+          continue;
+        }
+
+        List<VehicleInstance> parkedVehicles = blockingInstance
+            .getParkedVehicles();
+        for (int i = parkedVehicles.size() - 1; i >= 0; i--) {
+          int lastDeparture = parkedVehicles
+              .get(i)
+              .getVehicle()
+              .getDeparture();
+          if (lastDeparture >= firstDeparture) {
+            count++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    return count;
   }
 
   private double p1f1() {
@@ -45,6 +100,7 @@ public class Evaluator {
       }
     }
     //System.out.println("p1f1=" + Math.pow(solutionInstance.nUsedTracks() - 1, -1) * (double) f1);
+    int usedTracksOr1 = Math.max(1, solutionInstance.nUsedTracks() - 1);
     return Math.pow(solutionInstance.nUsedTracks() - 1, -1) * (double) f1;
   }
 
@@ -116,6 +172,7 @@ public class Evaluator {
       }
     }
     //System.out.println("r2g2=" + Math.pow(r2, -1) * (double) g2);
+    int r2Or1 = Math.max(1, r2);
     return Math.pow(r2, -1) * (double) g2;
   }
 
@@ -123,24 +180,24 @@ public class Evaluator {
     int r3 = 0;
     int g3 = 0;
     for (TrackInstance track : solutionInstance.getTrackInstancesInorder()) {
-      if (!track.getParkedVehicles().isEmpty()) {
-        int size = track.getParkedVehicles().size();
-        for (int i = 0; i < size - 1; i++) {
-          r3 += 15;
-          int firstStart = track.getParkedVehicles().get(i).getVehicle().getDeparture();
-          int secondStart = track.getParkedVehicles().get(i + 1).getVehicle().getDeparture();
-          int diff = secondStart - firstStart;
-          if (diff < 10) {
-            g3 -= 4 * (10 - diff);
-          } else if (diff <= 20) {
-            g3 += 15;
-          } else {
-            g3 += 10;
-          }
+      int size = track.getParkedVehicles().size();
+      for (int i = 0; i < size - 1; i++) {
+        r3 += 15;
+        int firstStart = track.getParkedVehicles().get(i).getVehicle().getDeparture();
+        int secondStart = track.getParkedVehicles().get(i + 1).getVehicle().getDeparture();
+        int diff = secondStart - firstStart;
+        if (diff < 10) {
+          g3 -= 4 * (10 - diff);
+        } else if (diff <= 20) {
+          g3 += 15;
+        } else {
+          g3 += 10;
         }
       }
     }
-    //System.out.println("r3g3=" + Math.pow(r3, -1) * (double) g3);
-    return Math.pow(r3, -1) * (double) g3;
+
+    // 0^-1 is infinity
+    int r3or1 = Math.max(1, r3);
+    return Math.pow(r3or1, -1) * (double) g3;
   }
 }

@@ -16,8 +16,9 @@ import hmo.instance.VehicleInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
-import hmo.solver.GreedySolver;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,8 +30,10 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/** Deprecated, random ideas thrown in this class. */
 public class SolutionInstanceUnits {
   private static final Logger logger = Logger.getLogger(SolutionInstanceUnits.class.toString());
 
@@ -75,9 +78,43 @@ public class SolutionInstanceUnits {
     }
 
     List<TrackInstance> allowedTracks = solutionInstance.getAllowedTracks(vehicle);
-    TrackInstance chosenTrack = Utils.randomElement(allowedTracks, random);
-    if (chosenTrack != null && solutionInstance.canAssign(vehicle, chosenTrack.getTrack())) {
-      solutionInstance.assign(vehicle, chosenTrack.getTrack());
+    int i = 0;
+    while (allowedTracks.isEmpty() && i++ < 5) {
+      TrackInstance trackInstance = solutionInstance.getRandomTrack(random, vehicle.getSeries());
+      solutionInstance.getAllowedTracks(vehicle);
+      if (trackInstance == null) {
+        allowedTracks =
+            Collections.singletonList(
+                solutionInstance.removeParkedVehiclesFromRandomTrack(random));
+        break;
+      }
+      solutionInstance.pollUsedVehicle(trackInstance.getTrack(), random);
+      allowedTracks = solutionInstance.getAllowedTracks(vehicle);
+    }
+
+    TrackInstance chosenInstance = Utils.randomElement(allowedTracks, random);
+    if (chosenInstance != null && solutionInstance.canAssign(vehicle, chosenInstance.getTrack())) {
+      if (random.nextBoolean()) {
+        return solveBlock(solutionInstance, vehicle, chosenInstance.getTrack());
+      }
+
+      solutionInstance.assign(vehicle, chosenInstance.getTrack());
+    }
+
+    return solutionInstance;
+  }
+
+  private SolutionInstance solveBlock(
+      SolutionInstance solutionInstance,
+      Vehicle vehicleToInsert,
+      Track track) {
+    for (Track blockTrack : problem.getBlocks(track).collect(Collectors.toList())) {
+      Collection<Vehicle> polledVehicles = solutionInstance.pollUsedVehicles(blockTrack,
+          vehicle -> vehicle.getDeparture() > vehicleToInsert.getDeparture());
+      if (!polledVehicles.isEmpty() && solutionInstance.canAssign(vehicleToInsert, blockTrack)) {
+        solutionInstance.assign(vehicleToInsert, blockTrack);
+        break;
+      }
     }
 
     return solutionInstance;
@@ -203,7 +240,8 @@ public class SolutionInstanceUnits {
   }
 
   public UnitGenerator<SolutionInstance> unitGenerator(GAMeta meta) {
-    return new UnitGenerator<>(() -> new GreedySolver(problem, random).solve());
-//    return new UnitGenerator<>(() -> new SolutionInstance(problem));
+//    return new UnitGenerator<>(() -> new GreedyOrderedSolver(problem, random).solve());
+//    return new UnitGenerator<>(() -> new GreedySolver(problem, random).solve());
+    return new UnitGenerator<>(() -> new SolutionInstance(problem));
   }
 }

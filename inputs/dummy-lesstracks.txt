@@ -3,7 +3,7 @@
 # duljine vozila
 1 1 1 1 1
 # serija vozila
-1 1 2 2 3
+1 1 1 2 2
 # ogranicenja za svako vozilo
 1 1 1
 1 1 1
@@ -13,7 +13,7 @@
 # duljine traka
 3 2 5
 # vrijeme polaska za svako vozilo
-2 3 3 4 4
+2 3 4 4 4
 # tip rasporeda za svako vozilo
 1 1 1 1 1
 # blokade

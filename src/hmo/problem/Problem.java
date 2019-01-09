@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Problem {
   private List<Track> tracks;
@@ -37,8 +39,19 @@ public class Problem {
     return trackBlocksTracks.getOrDefault(trackId, new HashSet<>());
   }
 
+  public Stream<Track> getBlocks(Track track) {
+    Collection<Integer> blocks = trackBlocksTracks.getOrDefault(track.getId(), new HashSet<>());
+    return blocks.stream().map(i -> tracks.get(i - 1));
+  }
+
   public Collection<Integer> getBlockedBy(int trackId) {
     return trackBlockedByTracks.getOrDefault(trackId, new HashSet<>());
+  }
+
+  public Stream<Track> getBlockedBy(Track track) {
+    // NOTE: assumes ID is index + 1
+    Collection<Integer> blockedBy = getBlockedBy(track.getId());
+    return blockedBy.stream().map(i -> tracks.get(i - 1));
   }
 
   public TrackInstance getBlockedTrack(TrackInstance first, TrackInstance second) {

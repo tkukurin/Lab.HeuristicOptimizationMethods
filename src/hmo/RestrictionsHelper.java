@@ -126,8 +126,12 @@ public class RestrictionsHelper {
     for (Entry<Integer, TrackInstance> idAndTrackInstance : idToTrackInstance.entrySet()) {
       int id = idAndTrackInstance.getKey();
       TrackInstance trackInstance = idAndTrackInstance.getValue();
-      int firstDeparture = trackInstance.getParkedVehicles().get(0).getVehicle().getDeparture();
 
+      if (trackInstance.getParkedVehicles().isEmpty()) {
+        continue;
+      }
+
+      int firstDeparture = trackInstance.getParkedVehicles().get(0).getVehicle().getDeparture();
       for (Integer blockingId : solutionInstance.getProblem().getBlockedBy(id)) {
         TrackInstance blockingInstance = idToTrackInstance.get(blockingId);
         int len = blockingInstance.getParkedVehicles().size();

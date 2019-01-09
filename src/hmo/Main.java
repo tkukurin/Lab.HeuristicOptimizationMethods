@@ -39,7 +39,8 @@ public class Main {
   private static  final Logger LOG = Logger.getLogger(Main.class.toString());
 
   public static void main(String[] args) throws IOException {
-    Path inputFilePath = Paths.get("inputs/dummy-lesstracks.txt");
+//    Path inputFilePath = Paths.get("inputs/dummy-lesstracks.txt");
+    Path inputFilePath = Paths.get("instanca1.txt");
     String inputFileName = inputFilePath.getFileName().toString();
     final FileReader inputReader = new FileReader(inputFilePath.toFile());
 
@@ -84,12 +85,9 @@ public class Main {
         fileName = String.format("bestOutput-%s", inputFileName);
       }
 
-      final FileWriter outputWriter = new FileWriter(fileName);
+      final FileWriter outputWriter = new FileWriter("outputs/" + fileName);
       try (BufferedWriter writer = new BufferedWriter(outputWriter)) {
-        for (TrackInstance trackInstance : gaSolution.getTrackInstancesInorder()) {
-          writer.write(trackInstance.toString());
-          writer.newLine();
-        }
+        writer.write(gaSolution.toString());
       }
     }
 
@@ -195,18 +193,4 @@ public class Main {
 
     return new Problem(tracks, vehicles, blockades, inverseBlockades);
   }
-
-  private static void outputProblem(Problem problem) {
-    System.out.println("Vehicles:");
-    System.out.println("-----------------------------------------");
-    for (Vehicle v : problem.getVehicles()) {
-      System.out.println(v.toString());
-    }
-    System.out.println("Tracks:");
-    System.out.println("-----------------------------------------");
-    for (Track t : problem.getTracks()) {
-      System.out.println(t.toString());
-    }
-  }
-
 }
