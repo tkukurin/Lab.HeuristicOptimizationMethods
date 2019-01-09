@@ -79,7 +79,8 @@ public class Main {
       RestrictionsHelper restrictionsHelper = new RestrictionsHelper(gaSolution);
       Collection<String> failedChecks = restrictionsHelper.getRestrictionChecks().entrySet()
           .stream()
-          .filter(entry -> entry.getValue().get())
+          // collect any test that does not pass
+          .filter(entry -> !entry.getValue().get())
           .map(Entry::getKey)
           .collect(Collectors.toList());
       if (!failedChecks.isEmpty()) {
