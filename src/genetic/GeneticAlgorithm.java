@@ -161,7 +161,7 @@ public class GeneticAlgorithm<T> {
         best = population.get(0);
       }
 
-      if (iterations % 1_00 == 0) {
+      if (iterations % 1000 == 0) {
         logger.info(String.format(
             "Completed %s steps. Best fitness: %s", iterations, best.getFitness()));
       }

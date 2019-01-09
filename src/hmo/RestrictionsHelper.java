@@ -1,5 +1,6 @@
 package hmo;
 
+import genetic.GeneticAlgorithm.Pair;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
@@ -7,6 +8,7 @@ import hmo.problem.Track;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -152,4 +154,43 @@ public class RestrictionsHelper {
 
     return true;
   }
+
+  public Map<Track, Collection<Track>> collectBlockers() {
+    Map<Integer, TrackInstance> idToTrackInstance = solutionInstance.getTrackInstances()
+        .stream().collect(Collectors.toMap(ti -> ti.getTrack().getId(), ti -> ti));
+    Map<Track, Collection<Track>> result = new HashMap<>();
+
+    for (Entry<Integer, TrackInstance> idAndTrackInstance : idToTrackInstance.entrySet()) {
+      int id = idAndTrackInstance.getKey();
+      TrackInstance trackInstance = idAndTrackInstance.getValue();
+      Collection<Track> blockedBy = new HashSet<>();
+      result.put(trackInstance.getTrack(), blockedBy);
+
+      if (trackInstance.getParkedVehicles().isEmpty()) {
+        continue;
+      }
+
+      int firstDeparture = trackInstance.getParkedVehicles().get(0).getVehicle().getDeparture();
+      for (Integer blockingId : solutionInstance.getProblem().getBlockedBy(id)) {
+        TrackInstance blockingInstance = idToTrackInstance.get(blockingId);
+        int len = blockingInstance.getParkedVehicles().size();
+        if (len == 0) {
+          continue;
+        }
+
+        List<VehicleInstance> parkedVehicles = blockingInstance
+            .getParkedVehicles();
+        int lastDeparture = parkedVehicles
+            .get(parkedVehicles.size() - 1)
+            .getVehicle()
+            .getDeparture();
+        if (lastDeparture >= firstDeparture) {
+          blockedBy.add(blockingInstance.getTrack());
+        }
+      }
+    }
+
+    return result;
+  }
+
 }

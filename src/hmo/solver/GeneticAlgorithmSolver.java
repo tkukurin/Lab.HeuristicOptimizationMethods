@@ -29,11 +29,11 @@ public class GeneticAlgorithmSolver {
   public static Iterator<Pair<PopulationInfo, SolutionInstance>> solve(
       Problem problem,
       ExecutorService executorService) {
-    IterationBounds iterationBounds = new IterationBounds(2_000, 1);
+    IterationBounds iterationBounds = new IterationBounds(5_000, 1);
     Random random = new Random(42L);
     GAMeta meta = new GAMeta();
     List<Parameters> parameters = Arrays.asList(
-      new Parameters(new PopulationInfo(50, 3, 0.88, 0.88))
+      new Parameters(new PopulationInfo(50, 4, 0.95, 0.6))
 //      new Parameters(new PopulationInfo(100, 2, 0.88, 0.85))
 //      new Parameters(new PopulationInfo(500, 5, 0.88, 0.75)),
 //      new Parameters(new PopulationInfo(500, 10, 0.7, 0.9)),

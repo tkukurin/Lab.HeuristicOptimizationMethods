@@ -4,7 +4,6 @@ import hmo.common.TrackUtils;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
-import hmo.problem.Vehicle;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,21 +24,23 @@ public class Evaluator {
     double maximizationGoal = r1g1() + r2g2() + r3g3();
     maximizationGoal = Double.isFinite(maximizationGoal) ? maximizationGoal : 0;
     minimizationGoal = Double.isFinite(minimizationGoal) ? minimizationGoal : Double.MAX_VALUE;
-    final double coef = 10;
     double numUsed = solutionInstance.getAssignedVehicles().size();
     double numVehicles = solutionInstance.getProblem().getVehicles().size();
+    double numBlockers = blockerCount();
+    double usedVehiclesGoal = Math.pow(1.5, numUsed / numVehicles);
+    double blockerGoal = Math.pow(1.5, numVehicles / (numBlockers + 1));
     double result =
         1.0 / (minimizationGoal + 1)
         + maximizationGoal
-        + Math.pow(1.5, coef * numUsed)
-        + Math.pow(10, - coef * blockers());
+        + usedVehiclesGoal
+        + blockerGoal;
     if (Double.isInfinite(result)) {
       System.out.println("INF");
     }
     return result;
   }
 
-  private double blockers() {
+  private double blockerCount() {
     double count = 0;
     Map<Integer, TrackInstance> idToTrackInstance = solutionInstance.getTrackInstances()
         .stream().collect(Collectors.toMap(ti -> ti.getTrack().getId(), ti -> ti));

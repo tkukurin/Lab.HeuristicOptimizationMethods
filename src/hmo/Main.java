@@ -74,6 +74,15 @@ public class Main {
       RestrictionsHelper restrictionsHelper = new RestrictionsHelper(gaSolution);
       Map<String, Supplier<Boolean>> checks = restrictionsHelper.getRestrictionChecks();
       if (!checks.entrySet().stream().allMatch(passesNecessaryChecks(populationInfo))) {
+        Map<Track, Collection<Track>> blockers = restrictionsHelper.collectBlockers();
+        blockers.forEach((k, v) -> {
+          if (!v.isEmpty()) {
+            System.out.format("Blockers for track %s: [%s]\n",
+                k.getId(),
+                v.stream().map(Track::getId).map(Object::toString)
+                    .collect(Collectors.joining(", ")));
+          }
+        });
         // TODO have this behavior later.
 //        continue;
       }

@@ -122,6 +122,10 @@ public class SolutionInstance {
         .collect(Collectors.toList());
   }
 
+  public TrackInstance getInstance(Track track) {
+    return trackToInstance.get(track);
+  }
+
   public TrackInstance getRandomTrack(Random random) {
     int nTracks = trackToInstance.size();
     return trackToInstance.get(problem.getTracks().get(random.nextInt(nTracks)));
@@ -158,8 +162,8 @@ public class SolutionInstance {
     return Utils.difference(problem.getVehicles(), assignedVehicles.keySet());
   }
 
-  public Collection<Vehicle> getAssignedVehicles() {
-    return assignedVehicles.keySet();
+  public Collection<VehicleInstance> getAssignedVehicles() {
+    return assignedVehicles.values();
   }
 
   // handled from within TrackInstance: (7) departure of any vehicle that comes first must be
@@ -170,7 +174,7 @@ public class SolutionInstance {
     boolean trackConditions = track.getAllowedVehicleIds().contains(vehicle.getId())
         && track.getTrackLength() >= vehicle.getVehicleLength();
     boolean trackInstanceConditions = trackToInstance.get(track).canAdd(vehicle);
-    return trackConditions && trackInstanceConditions;
+    return !assignedVehicles.containsKey(vehicle) && trackConditions && trackInstanceConditions;
   }
 
   public Stream<TrackInstance> getBlockers(Vehicle vehicle, Track track) {
@@ -251,7 +255,10 @@ public class SolutionInstance {
   }
 
   public TrackInstance removeParkedVehiclesFromRandomTrack(Random random) {
-    Track track = Utils.randomElement(problem.getTracks(), random);
+    return removeParkedVehicles(Utils.randomElement(problem.getTracks(), random));
+  }
+
+  public TrackInstance removeParkedVehicles(Track track) {
     TrackInstance instance = trackToInstance.get(track);
     List<VehicleInstance> vehicles = instance.getParkedVehicles();
     instance.setParkedVehicles(new ArrayList<>());

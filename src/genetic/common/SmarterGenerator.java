@@ -1,19 +1,23 @@
 package genetic.common;
 
 import genetic.GAMeta;
+import hmo.RestrictionsHelper;
 import hmo.common.Utils;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
 import hmo.problem.Problem;
+import hmo.problem.Track;
 import hmo.problem.Vehicle;
-import hmo.solver.GreedyOrderedSolver;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 
-public class RandomizedGenerator extends SolutionInstanceGenerator {
+public class SmarterGenerator extends SolutionInstanceGenerator {
 
-  public RandomizedGenerator(Random random, Problem problem, GAMeta meta) {
+  public SmarterGenerator(Random random, Problem problem, GAMeta meta) {
     super(random, problem, meta);
   }
 
@@ -47,6 +51,7 @@ public class RandomizedGenerator extends SolutionInstanceGenerator {
     Vehicle vehicle = solutionInstance.pollUnusedVehicle(random);
     double percentAssignedVehicles =
         (double) solutionInstance.getAssignedVehicles().size() / problem.getVehicles().size();
+
     if (vehicle == null || coinFlip(percentAssignedVehicles)) {
       solutionInstance.resetVehiclePool();
       solutionInstance.pollUsedVehicle(Utils.randomElement(problem.getTracks(), random), random);
@@ -57,6 +62,14 @@ public class RandomizedGenerator extends SolutionInstanceGenerator {
     TrackInstance chosenInstance = Utils.randomElement(allowedTracks, random);
     if (chosenInstance != null && solutionInstance.canAssign(vehicle, chosenInstance.getTrack())) {
       solutionInstance.assign(vehicle, chosenInstance.getTrack());
+    }
+
+    Map<Track, Collection<Track>> restrictions =
+        new RestrictionsHelper(solutionInstance).collectBlockers();
+    for (Entry<Track, Collection<Track>> restriction : restrictions.entrySet()) {
+      Track blocked = restriction.getKey();
+      Collection<Track> blockers = restriction.getValue();
+      blockers.forEach(solutionInstance::removeParkedVehicles);
     }
 
     if (coinFlip(0.5)) {
