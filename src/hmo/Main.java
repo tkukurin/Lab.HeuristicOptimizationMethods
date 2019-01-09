@@ -3,7 +3,6 @@ package hmo;
 import genetic.GeneticAlgorithm.Pair;
 import genetic.GeneticAlgorithm.PopulationInfo;
 import hmo.instance.SolutionInstance;
-import hmo.instance.TrackInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
@@ -42,7 +41,7 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
 //    Path inputFilePath = Paths.get("inputs/dummy-lesstracks.txt");
-    Path inputFilePath = Paths.get("instanca1.txt");
+    Path inputFilePath = Paths.get("instanca3.txt");
     String inputFileName = inputFilePath.getFileName().toString();
     final FileReader inputReader = new FileReader(inputFilePath.toFile());
 
@@ -73,23 +72,21 @@ public class Main {
           gaSolution.nUsedTracks(),
           problem.getTracks().size()));
 
-      // TODO some smarter finisher
+      // TODO some smarter finisher. basically it should take into account blocking tracks,
+      // and try to assign *all* cars if GA wasn't able to do that.
       gaSolution = new GreedySolver(gaSolution, new Random(42L)).solve();
 
       RestrictionsHelper restrictionsHelper = new RestrictionsHelper(gaSolution);
-      Map<String, Supplier<Boolean>> checks = restrictionsHelper.getRestrictionChecks();
-      if (!checks.entrySet().stream().allMatch(passesNecessaryChecks(populationInfo))) {
-        Map<Track, Collection<Track>> blockers = restrictionsHelper.collectBlockers();
-        blockers.forEach((k, v) -> {
-          if (!v.isEmpty()) {
-            System.out.format("Blockers for track %s: [%s]\n",
-                k.getId(),
-                v.stream().map(Track::getId).map(Object::toString)
-                    .collect(Collectors.joining(", ")));
-          }
-        });
-        // TODO have this behavior later.
-//        continue;
+      Collection<String> failedChecks = restrictionsHelper.getRestrictionChecks().entrySet()
+          .stream()
+          .filter(entry -> entry.getValue().get())
+          .map(Entry::getKey)
+          .collect(Collectors.toList());
+      if (!failedChecks.isEmpty()) {
+        LOG.info(String.format("[%s] Failed checks: %s",
+            populationInfo.toString(),
+            String.join(", ", failedChecks)));
+        continue;
       }
 
       double currentFitness = new Evaluator(gaSolution).fitnessToMaximize();
@@ -107,19 +104,6 @@ public class Main {
 
     System.out.println("Done.");
     executorService.shutdown();
-  }
-
-  private static Predicate<Entry<String, Supplier<Boolean>>> passesNecessaryChecks(
-      PopulationInfo populationInfo) {
-    return entry -> {
-          boolean passes = entry.getValue().get();
-          if (!passes) {
-            LOG.info(String.format("[%s] Failed check: %s",
-                populationInfo.toString(),
-                entry.getKey()));
-          }
-          return passes;
-        };
   }
 
   private static Problem readInput(Reader reader) {
@@ -206,5 +190,17 @@ public class Main {
     }
 
     return new Problem(tracks, vehicles, blockades, inverseBlockades);
+  }
+
+  private static void printOutBlockers(RestrictionsHelper restrictionsHelper) {
+    Map<Track, Collection<Track>> blockers = restrictionsHelper.collectBlockers();
+    blockers.forEach((k, v) -> {
+      if (!v.isEmpty()) {
+        System.out.format("Blockers for track %s: [%s]\n",
+            k.getId(),
+            v.stream().map(Track::getId).map(Object::toString)
+                .collect(Collectors.joining(", ")));
+      }
+    });
   }
 }

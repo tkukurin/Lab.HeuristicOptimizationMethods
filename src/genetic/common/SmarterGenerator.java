@@ -23,7 +23,6 @@ public class SmarterGenerator extends SolutionInstanceGenerator {
 
   @Override
   SolutionInstance unitGenerator() {
-//    return new GreedyOrderedSolver(problem, random).solve();
     return new SolutionInstance(problem);
   }
 
@@ -42,8 +41,6 @@ public class SmarterGenerator extends SolutionInstanceGenerator {
     }
 
     return modified;
-
-//    return coinFlip(s1assigned / (s1assigned + s2Assigned)) ? s1 : s2;
   }
 
   @Override
@@ -52,7 +49,7 @@ public class SmarterGenerator extends SolutionInstanceGenerator {
     double percentAssignedVehicles =
         (double) solutionInstance.getAssignedVehicles().size() / problem.getVehicles().size();
 
-    if (vehicle == null || coinFlip(percentAssignedVehicles)) {
+    if (vehicle == null || coinFlip(percentAssignedVehicles * 0.85)) {
       solutionInstance.resetVehiclePool();
       solutionInstance.pollUsedVehicle(Utils.randomElement(problem.getTracks(), random), random);
       return solutionInstance;
@@ -67,7 +64,6 @@ public class SmarterGenerator extends SolutionInstanceGenerator {
     Map<Track, Collection<Track>> restrictions =
         new RestrictionsHelper(solutionInstance).collectBlockers();
     for (Entry<Track, Collection<Track>> restriction : restrictions.entrySet()) {
-      Track blocked = restriction.getKey();
       Collection<Track> blockers = restriction.getValue();
       blockers.forEach(solutionInstance::removeParkedVehicles);
     }

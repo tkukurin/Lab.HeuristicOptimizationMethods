@@ -27,16 +27,14 @@ public class Evaluator {
     double numUsed = solutionInstance.getAssignedVehicles().size();
     double numVehicles = solutionInstance.getProblem().getVehicles().size();
     double numBlockers = blockerCount();
-    double usedVehiclesGoal = Math.pow(1.5, numUsed / numVehicles);
-    double blockerGoal = Math.pow(1.5, numVehicles / (numBlockers + 1));
+    double powerValue = 1.5;
+    double usedVehiclesGoal = Math.pow(powerValue, 5 * numUsed / numVehicles);
+    double blockerGoal = Math.pow(powerValue, numVehicles / (numBlockers + 1));
     double result =
-        1.0 / (minimizationGoal + 1)
-        + maximizationGoal
+        maximizationGoal / (minimizationGoal + 1)
+//        + maximizationGoal
         + usedVehiclesGoal
         + blockerGoal;
-    if (Double.isInfinite(result)) {
-      System.out.println("INF");
-    }
     return result;
   }
 

@@ -165,10 +165,6 @@ public class GeneticAlgorithm<T> {
         logger.info(String.format(
             "Completed %s steps. Best fitness: %s", iterations, best.getFitness()));
       }
-
-      if (iterations % 5000 == 0) {
-        System.out.println(population.get(0).getUnit().value.toString());
-      }
     }
 
     logger.info(String.format("Finishing with %s iterations.", iterations - 1));
@@ -177,6 +173,7 @@ public class GeneticAlgorithm<T> {
 
   private List<UnitAndFitness<T>> evolve(List<UnitAndFitness<T>> population) {
     List<UnitAndFitness<T>> newPopulation = topN(population, populationInfo.elitism);
+//    double bestFitness = newPopulation.get(0).getFitness();
 
     for (int i = newPopulation.size(); i < populationInfo.size; i++) {
       Unit<T> child = population.get(random.nextInt(population.size())).getUnit();
@@ -186,11 +183,16 @@ public class GeneticAlgorithm<T> {
         child = crossover.apply(parents.first, parents.second);
       }
 
+      // this is just a test thing. idea was that, the closer a child is to the best unit, the lower
+      // its mutation probability is. however it doesn't seem to work as well.
+//      double childFitness = fitnessEvaluator.apply(child.getValue());
+//      double childToBestRatio = childFitness / bestFitness;
+//      double mutationMultiplier = 1;
       if (shouldPerformAction(populationInfo.mutationProbability)) {
         child = mutator.apply(child);
       }
 
-      newPopulation.add(new UnitAndFitness<>(child, 0.0));//fitnessEvaluator.apply(child.value)));
+      newPopulation.add(new UnitAndFitness<>(child, fitnessEvaluator.apply(child.value)));
     }
 
     return sortedByDescendingFitness(newPopulation);
@@ -206,17 +208,12 @@ public class GeneticAlgorithm<T> {
 
   private List<UnitAndFitness<T>> sortedByDescendingFitness(Stream<UnitAndFitness<T>> stream) {
     return stream
-//        .filter(u -> Double.isFinite(u.getFitness()))
-        .map(uf -> new UnitAndFitness<>(
-            uf.getUnit(), fitnessEvaluator.apply(uf.getUnit().getValue())))
         .sorted(Comparator.comparingDouble(UnitAndFitness<T>::getFitness).reversed())
         .collect(Collectors.toList());
   }
 
   private List<UnitAndFitness<T>> topN(List<UnitAndFitness<T>> population, int elitism) {
-    return population.stream()
-//        .filter(kv -> Double.isFinite(kv.getFitness()))
-        .limit(elitism).collect(Collectors.toList());
+    return population.stream().limit(elitism).collect(Collectors.toList());
   }
 
   private Pair<Unit<T>, Unit<T>> selectParents(List<UnitAndFitness<T>> units) {

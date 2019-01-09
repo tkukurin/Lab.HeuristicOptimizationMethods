@@ -1,43 +1,66 @@
 package hmo;
 
-import genetic.GeneticAlgorithm.Pair;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
 import hmo.problem.Track;
+import hmo.problem.Vehicle;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class RestrictionsHelper {
 
   private final Map<String, Supplier<Boolean>> restrictionNameToCheck = new HashMap<>();
-
-  private SolutionInstance solutionInstance;
+  private final SolutionInstance solutionInstance;
 
   public RestrictionsHelper(SolutionInstance solutionInstance) {
     this.solutionInstance = solutionInstance;
-
+    restrictionNameToCheck.put("Vehicle should appear only once.", this::vehicleAppearsOnlyOnce);
     restrictionNameToCheck.put("Single series in track", this::singleSeriesInTracksTest);
-    restrictionNameToCheck
-        .put("Vehicle in correct track", this::vehiclesAllowedInAssignedTracksTest);
+    restrictionNameToCheck.put(
+        "Vehicle in correct track", this::vehiclesAllowedInAssignedTracksTest);
     restrictionNameToCheck.put("Track length", this::tracksNotOverloadedTest);
-    restrictionNameToCheck
-        .put("Blocked vehicles depart first", this::vehiclesInBlockedTracksDepartureTimesTest);
+    restrictionNameToCheck.put(
+        "Blocked vehicles depart first", this::vehiclesInBlockedTracksDepartureTimesTest);
+    restrictionNameToCheck.put(
+        "Vehicle only once on a track", this::vehicleOnlyOnceInATrackTest);
+    restrictionNameToCheck.put(
+        "Order of departure on a single track",
+        this::orderOfDepartureOfVehiclesInTheSameTrackTest);
   }
 
   public Map<String, Supplier<Boolean>> getRestrictionChecks() {
     return restrictionNameToCheck;
   }
 
-  public boolean singleTrackTest() {
+  public boolean vehicleAppearsOnlyOnce() {
     // test not needed, vehicleInstance can have just one Track
+    // -> we are actually testing for duplicate vehicles, so this can happen.
+
+    Set<Vehicle> foundVehicles = new HashSet<>();
+    Iterator<Vehicle> allVehiclesInTracks = solutionInstance.getTrackInstances().stream()
+        .flatMap(trackInstance -> trackInstance.getParkedVehicles().stream())
+        .map(VehicleInstance::getVehicle)
+        .iterator();
+
+    while (allVehiclesInTracks.hasNext()) {
+      Vehicle vehicle = allVehiclesInTracks.next();
+      if (foundVehicles.contains(vehicle)) {
+        return false;
+      }
+
+      foundVehicles.add(vehicle);
+    }
+
     return true;
   }
 
@@ -99,11 +122,6 @@ public class RestrictionsHelper {
         vehiclesInATrack.add(vehicle);
       }
     }
-    return true;
-  }
-
-  public boolean singlePositionInATrackTest() {
-    // we don't assign positions to vehicles
     return true;
   }
 

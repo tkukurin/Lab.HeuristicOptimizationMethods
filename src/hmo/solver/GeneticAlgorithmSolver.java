@@ -33,10 +33,10 @@ public class GeneticAlgorithmSolver {
     Random random = new Random(42L);
     GAMeta meta = new GAMeta();
     List<Parameters> parameters = Arrays.asList(
-      new Parameters(new PopulationInfo(20, 1, 0.95, 0.6)),
-      new Parameters(new PopulationInfo(20, 1, 0.90, 0.70)),
+//      new Parameters(new PopulationInfo(20, 1, 0.95, 0.6)),
+//      new Parameters(new PopulationInfo(20, 1, 0.90, 0.70)),
       new Parameters(new PopulationInfo(15, 1, 0.98, 0.98)),
-      new Parameters(new PopulationInfo(20, 1, 0.5, 0.6)),
+      new Parameters(new PopulationInfo(20, 1, 0.99, 0.99)),
       new Parameters(new PopulationInfo(20, 1, 0.95, 0.9))
     );
 
