@@ -16,15 +16,21 @@ public class GreedySolver extends Solver {
   private static final Logger LOG = Logger.getLogger(GreedySolver.class.toString());
 
   private Random random;
+  private SolutionInstance solutionInstance;
 
   public GreedySolver(Problem problem, Random random) {
-    super(problem);
+    this(new SolutionInstance(problem), random);
+  }
+
+  public GreedySolver(SolutionInstance solutionInstance, Random random) {
+    super(solutionInstance.getProblem());
     this.random = random;
+    this.solutionInstance = solutionInstance;
   }
 
   @Override
   public SolutionInstance solve() {
-    SolutionInstance solutionInstance = new SolutionInstance(problem);
+    solutionInstance.resetVehiclePool();
 
     LOG.info("Starting greedy algorithm.");
     while (!solutionInstance.getVehiclePool().isEmpty()) {

@@ -8,6 +8,7 @@ import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import hmo.solver.GeneticAlgorithmSolver;
+import hmo.solver.GreedySolver;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -24,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -70,6 +72,9 @@ public class Main {
           problem.getVehicles().size(),
           gaSolution.nUsedTracks(),
           problem.getTracks().size()));
+
+      // TODO some smarter finisher
+      gaSolution = new GreedySolver(gaSolution, new Random(42L)).solve();
 
       RestrictionsHelper restrictionsHelper = new RestrictionsHelper(gaSolution);
       Map<String, Supplier<Boolean>> checks = restrictionsHelper.getRestrictionChecks();
