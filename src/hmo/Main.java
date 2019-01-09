@@ -75,6 +75,7 @@ public class Main {
 
       // TODO some smarter finisher. basically it should take into account blocking tracks,
       // and try to assign *all* cars if GA wasn't able to do that.
+      // we could for instance have a taboo solver here or something.
       gaSolution = new GreedySolver(gaSolution, new Random(42L)).solve();
 
       RestrictionsHelper restrictionsHelper = new RestrictionsHelper(gaSolution);
