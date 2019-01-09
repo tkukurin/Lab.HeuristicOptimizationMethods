@@ -94,13 +94,11 @@ public class Main {
       String fileName = String.format("output-%s-%s.txt", inputFileName, populationInfo.toString());
       if (currentFitness > bestFitness) {
         bestFitness = currentFitness;
-        fileName = String.format("bestOutput-%s", inputFileName);
+        // just overwrite past best solutions. can also be handled better.
+        output(gaSolution, String.format("bestOutput-%s", inputFileName));
       }
 
-      final FileWriter outputWriter = new FileWriter("outputs/" + fileName);
-      try (BufferedWriter writer = new BufferedWriter(outputWriter)) {
-        writer.write(gaSolution.toString());
-      }
+      output(gaSolution, fileName);
     }
 
     System.out.println("Done.");
@@ -191,6 +189,13 @@ public class Main {
     }
 
     return new Problem(tracks, vehicles, blockades, inverseBlockades);
+  }
+
+  private static void output(SolutionInstance gaSolution, String fileName) throws IOException {
+    final FileWriter outputWriter = new FileWriter("outputs/" + fileName);
+    try (BufferedWriter writer = new BufferedWriter(outputWriter)) {
+      writer.write(gaSolution.toString());
+    }
   }
 
   private static void printOutBlockers(RestrictionsHelper restrictionsHelper) {
