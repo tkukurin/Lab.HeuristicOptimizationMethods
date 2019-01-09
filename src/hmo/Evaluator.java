@@ -17,6 +17,14 @@ public class Evaluator {
     this.solutionInstance = solutionInstance;
   }
 
+  protected double firstGoal() {
+    return p1f1() + p2f2() + p3f3();
+  }
+
+  protected double secondGoal() {
+    return r1g1() + r2g2() + r3g3();
+  }
+
   public double fitnessToMaximize() {
     solutionInstance.resetVehiclePool();
 

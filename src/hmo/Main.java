@@ -54,7 +54,7 @@ public class Main {
         .newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     Iterator<Pair<PopulationInfo, SolutionInstance>> gaSolutionIterator =
         GeneticAlgorithmSolver.solve(problem, executorService);
-    double bestFitness = Double.MIN_VALUE;
+    double highestGoal = Double.MIN_VALUE;
 
     while (gaSolutionIterator.hasNext()) {
       Pair<PopulationInfo, SolutionInstance> solutionPair = gaSolutionIterator.next();
@@ -64,8 +64,9 @@ public class Main {
 
       PopulationInfo populationInfo = solutionPair.first;
       SolutionInstance gaSolution = solutionPair.second;
+      Evaluator evaluator = new Evaluator(gaSolution);
       LOG.info(String.format(
-          "[%s] %s/%s unassigned vehicles and %s/%s used tracks.",
+          "[%s] %s/%s unassigned vehicles and %s/%s used tracks.\n",
           populationInfo.toString(),
           gaSolution.getUnassignedVehicles().size(),
           problem.getVehicles().size(),
@@ -90,15 +91,18 @@ public class Main {
         continue;
       }
 
-      double currentFitness = new Evaluator(gaSolution).fitnessToMaximize();
-      String fileName = String.format("output-%s-%s.txt", inputFileName, populationInfo.toString());
-      if (currentFitness > bestFitness) {
-        bestFitness = currentFitness;
+      double fst = evaluator.firstGoal();
+      double snd = evaluator.secondGoal();
+      double goal = snd / fst;
+      LOG.info(String.format("[%s] Fitness: %.3f/%.3f = %.3f", populationInfo, snd, fst, goal));
+      if (goal > highestGoal) {
+        highestGoal = goal;
         // just overwrite past best solutions. can also be handled better.
         output(gaSolution, String.format("bestOutput-%s", inputFileName));
       }
 
-      output(gaSolution, fileName);
+      output(gaSolution, String.format(
+          "output-%s-%s.txt", inputFileName, populationInfo.toString()));
     }
 
     System.out.println("Done.");
