@@ -29,8 +29,6 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -73,9 +71,7 @@ public class Main {
           gaSolution.nUsedTracks(),
           problem.getTracks().size()));
 
-      // TODO some smarter finisher. basically it should take into account blocking tracks,
-      // and try to assign *all* cars if GA wasn't able to do that.
-      // we could for instance have a taboo solver here or something.
+      // TODO some smarter finisher maybe
       gaSolution = new GreedySolver(gaSolution, new Random(42L)).solve();
 
       RestrictionsHelper restrictionsHelper = new RestrictionsHelper(gaSolution);
