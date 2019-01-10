@@ -124,4 +124,8 @@ public class TrackInstance {
   private double deltaSpaceForNextVehicle() {
     return parkedVehicles.isEmpty() ? 0 : TrackUtils.SPACE_BETWEEN_CARS;
   }
+
+  public double getAvailableSpace() {
+    return this.availableSpace;
+  }
 }

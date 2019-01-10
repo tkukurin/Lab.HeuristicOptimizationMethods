@@ -1,4 +1,4 @@
-package genetic.common;
+package genetic.generator;
 
 import genetic.GAMeta;
 import hmo.common.Utils;
@@ -7,7 +7,6 @@ import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
 import hmo.problem.Problem;
 import hmo.problem.Vehicle;
-import hmo.solver.GreedyOrderedSolver;
 import java.util.List;
 import java.util.Random;
 
@@ -19,7 +18,6 @@ public class RandomizedGenerator extends SolutionInstanceGenerator {
 
   @Override
   SolutionInstance unitGenerator() {
-//    return new GreedyOrderedSolver(problem, random).solve();
     return new SolutionInstance(problem);
   }
 
@@ -38,8 +36,6 @@ public class RandomizedGenerator extends SolutionInstanceGenerator {
     }
 
     return modified;
-
-//    return coinFlip(s1assigned / (s1assigned + s2Assigned)) ? s1 : s2;
   }
 
   @Override

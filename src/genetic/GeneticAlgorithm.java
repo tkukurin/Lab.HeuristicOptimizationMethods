@@ -1,6 +1,7 @@
 package genetic;
 
 import genetic.common.Unit;
+import hmo.Evaluator;
 import hmo.common.Utils;
 import hmo.instance.SolutionInstance;
 import java.util.*;
@@ -163,7 +164,8 @@ public class GeneticAlgorithm<T> {
 
       if (iterations % 1000 == 0) {
         logger.info(String.format(
-            "Completed %s steps. Best fitness: %s", iterations, best.getFitness()));
+            "Completed %s steps. Best fitness: %s (%.4f)", iterations, best.getFitness(),
+            new Evaluator((SolutionInstance) best.getUnit().getValue()).totalGoal()));
       }
     }
 
@@ -175,12 +177,14 @@ public class GeneticAlgorithm<T> {
     List<UnitAndFitness<T>> newPopulation = topN(population, populationInfo.elitism);
 //    double bestFitness = newPopulation.get(0).getFitness();
 
-    for (int i = newPopulation.size(); i < populationInfo.size; i++) {
-      Unit<T> child = population.get(random.nextInt(population.size())).getUnit();
-
+//    for (int i = newPopulation.size(); i < populationInfo.size; i++) {
+    while (newPopulation.size() < populationInfo.size) {
+      Unit<T> child;
       if (shouldPerformAction(populationInfo.crossoverProbability)) {
         Pair<Unit<T>, Unit<T>> parents = selectParents(population);
         child = crossover.apply(parents.first, parents.second);
+      } else {
+        child = population.get(random.nextInt(population.size())).getUnit();
       }
 
       // this is just a test thing. idea was that, the closer a child is to the best unit, the lower

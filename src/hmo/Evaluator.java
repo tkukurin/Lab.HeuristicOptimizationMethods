@@ -17,12 +17,16 @@ public class Evaluator {
     this.solutionInstance = solutionInstance;
   }
 
-  protected double firstGoal() {
+  public double firstGoal() {
     return p1f1() + p2f2() + p3f3();
   }
 
-  protected double secondGoal() {
+  public double secondGoal() {
     return r1g1() + r2g2() + r3g3();
+  }
+
+  public double totalGoal() {
+    return secondGoal() / firstGoal();
   }
 
   public double fitnessToMaximize() {
@@ -35,12 +39,11 @@ public class Evaluator {
     double numUsed = solutionInstance.getAssignedVehicles().size();
     double numVehicles = solutionInstance.getProblem().getVehicles().size();
     double numBlockers = blockerCount();
-    double powerValue = 1.5;
+    double powerValue = 1.2;
     double usedVehiclesGoal = Math.pow(powerValue, 5 * numUsed / numVehicles);
     double blockerGoal = Math.pow(powerValue, numVehicles / (numBlockers + 1));
     double result =
         maximizationGoal / (minimizationGoal + 1)
-//        + maximizationGoal
         + usedVehiclesGoal
         + blockerGoal;
     return result;
