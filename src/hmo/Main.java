@@ -41,7 +41,7 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
 //    Path inputFilePath = Paths.get("inputs/dummy-lesstracks.txt");
-    Path inputFilePath = Paths.get("instanca3.txt");
+    Path inputFilePath = Paths.get("instanca1.txt");
     String inputFileName = inputFilePath.getFileName().toString();
     final FileReader inputReader = new FileReader(inputFilePath.toFile());
 

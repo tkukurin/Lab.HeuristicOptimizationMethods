@@ -27,7 +27,7 @@ public class GeneticAlgorithmSolver {
   public static Iterator<Pair<PopulationInfo, SolutionInstance>> solve(
       Problem problem,
       ExecutorService executorService) {
-    IterationBounds iterationBounds = new IterationBounds(20_000, 1);
+    IterationBounds iterationBounds = new IterationBounds(50_000, 1);
     Random random = new Random(42L);
     GAMeta meta = new GAMeta();
     List<Parameters> parameters = Arrays.asList(

@@ -197,6 +197,8 @@ public class GeneticAlgorithm<T> {
 
   private List<UnitAndFitness<T>> evolve(List<UnitAndFitness<T>> population) {
     List<UnitAndFitness<T>> newPopulation = topN(population, populationInfo.elitism);
+    double mutate = populationInfo.mutationProbability;
+
     while (newPopulation.size() < populationInfo.size) {
       Unit<T> child;
       if (shouldPerformAction(populationInfo.crossoverProbability)) {
@@ -206,16 +208,14 @@ public class GeneticAlgorithm<T> {
         child = population.get(random.nextInt(population.size())).getUnit();
       }
 
-      // this is just a test thing. idea was that, the closer a child is to the best unit, the lower
-      // its mutation probability is. however it doesn't seem to work as well.
-//      double childFitness = fitnessEvaluator.apply(child.getValue());
-//      double childToBestRatio = childFitness / bestFitness;
-//      double mutationMultiplier = 1;
-      if (shouldPerformAction(populationInfo.mutationProbability)) {
+      if (shouldPerformAction(mutate)) {
         child = mutator.apply(child);
       }
 
       newPopulation.add(new UnitAndFitness<>(child, fitnessEvaluator.apply(child.value)));
+
+      // TODO this also seems to work well, but try without it.
+      mutate = Math.min(1.0, mutate * 1.05);
     }
 
     return sortedByDescendingFitness(newPopulation);
