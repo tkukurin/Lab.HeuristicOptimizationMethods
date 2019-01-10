@@ -162,6 +162,10 @@ public class GeneticAlgorithm<T> {
         best = population.get(0);
       }
 
+      // TODO test this with different parameters, because it seems to work fairly well.
+      // also test without this delta adjustment
+      deltaAdjustment();
+
       if (iterations % 1000 == 0) {
         logger.info(String.format(
             "Completed %s steps. Best fitness: %s (%.4f)", iterations, best.getFitness(),
@@ -173,11 +177,26 @@ public class GeneticAlgorithm<T> {
     return population.get(0);
   }
 
+  private void deltaAdjustment() {
+    double f = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
+    double delta =
+        population.get(0).getFitness() / f - population.get(population.size() - 1).getFitness() / f;
+
+    if (delta <= 0.03) {
+      populationInfo.mutationProbability = Math.min(1.0,
+          populationInfo.mutationProbability * 1.05);
+      populationInfo.crossoverProbability = Math.max(0.3,
+          populationInfo.crossoverProbability * 0.95);
+    } else if (delta >= 0.05) {
+      populationInfo.crossoverProbability = Math.min(1.0,
+          populationInfo.crossoverProbability * 1.05);
+      populationInfo.mutationProbability = Math.max(0.3,
+          populationInfo.mutationProbability * 0.95);
+    }
+  }
+
   private List<UnitAndFitness<T>> evolve(List<UnitAndFitness<T>> population) {
     List<UnitAndFitness<T>> newPopulation = topN(population, populationInfo.elitism);
-//    double bestFitness = newPopulation.get(0).getFitness();
-
-//    for (int i = newPopulation.size(); i < populationInfo.size; i++) {
     while (newPopulation.size() < populationInfo.size) {
       Unit<T> child;
       if (shouldPerformAction(populationInfo.crossoverProbability)) {
