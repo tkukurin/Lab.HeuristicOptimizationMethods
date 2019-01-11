@@ -18,7 +18,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-public class SmarterGenerator extends TabooGenerator {
+public class SmarterGenerator extends SolutionInstanceGenerator {
 
   public SmarterGenerator(Random random, Problem problem, GAMeta meta) {
     super(random, problem, meta);
@@ -31,16 +31,13 @@ public class SmarterGenerator extends TabooGenerator {
 
   @Override
   SolutionInstance crossoverImpl(SolutionInstance s1, SolutionInstance s2) {
-    s1.resetVehiclePool();
-    s2.resetVehiclePool();
-
     if (coinFlip(meta.longestTrackCombinatorProbability)) {
       return longestTrackCombinator(s1, s2);
     }
 
     SolutionInstance modified = coinFlip(0.5) ? s1 : s2;
     SolutionInstance nonModified = modified == s1 ? s2 : s1;
-
+    modified.resetVehiclePool();
     for (VehicleInstance instance : nonModified.getAssignedVehicles()) {
       if (modified.canAssign(instance.getVehicle(), instance.getTrack())) {
         modified.assign(instance.getVehicle(), instance.getTrack());
@@ -58,7 +55,7 @@ public class SmarterGenerator extends TabooGenerator {
             .sorted(comparator)
             .collect(Collectors.toList());
     List<TrackInstance> t2 =
-        s1.getTrackInstances().stream()
+        s2.getTrackInstances().stream()
             .sorted(comparator)
             .collect(Collectors.toList());
 

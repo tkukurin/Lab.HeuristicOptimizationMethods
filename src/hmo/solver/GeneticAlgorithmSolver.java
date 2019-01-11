@@ -34,7 +34,7 @@ public class GeneticAlgorithmSolver {
 //      new Parameters(new PopulationInfo(20, 1, 0.95, 0.6)),
 //      new Parameters(new PopulationInfo(20, 1, 0.90, 0.70)),
 //      new Parameters(new PopulationInfo(15, 1, 0.98, 0.98)),
-      new Parameters(new PopulationInfo(20, 1, 0.99, 0.99))
+      new Parameters(new PopulationInfo(50, 3, 0.99, 0.99))
 //      new Parameters(new PopulationInfo(20, 1, 0.95, 0.9))
     );
 
