@@ -124,19 +124,25 @@ public class GeneticAlgorithm<T> {
         .filter(Double::isFinite)
         .sum();
 
+    double loSample = lower.sample();
+    double hiSample = upper.sample();
     while (!iterationBounds.isComplete(iterations++)) {
-      double loSample = lower.sample();
-      double hiSample = upper.sample();
+      double f = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
+      double oldPopulationDelta = population.get(0).getFitness() / f
+          - population.get(population.size() - 1).getFitness() / f;
 
       population = evolve(population);
       double currentPopulationValues = // population.get(0).getFitness();
           population.stream().mapToDouble(UnitAndFitness::getFitness)
               .filter(Double::isFinite).sum();
-      if (lrLo != null && currentPopulationValues > oldPopulationValues) {
-        deltas.add(oldPopulationValues - currentPopulationValues);
-        los.add(loSample);
-        his.add(hiSample);
-      } else if (lrLo == null && currentPopulationValues > oldPopulationValues) {
+
+//      if (currentPopulationValues > oldPopulationValues) {
+//        deltas.add(oldPopulationDelta);
+//        los.add(loSample);
+//        his.add(hiSample);
+//      }
+
+      if (lrLo == null && currentPopulationValues > oldPopulationValues) {
 //        improvement = iterations;
         lower.update(loSample);
         upper.update(hiSample);
@@ -150,8 +156,8 @@ public class GeneticAlgorithm<T> {
 //          bayesUpdatesHi = new ArrayList<>();
 //        }
       } else {
-//        lower.updateBad(loSample);
-//        upper.updateBad(hiSample);
+        lower.updateBad(loSample);
+        upper.updateBad(hiSample);
       }
 
 //      if (iterations - 5000 > improvement) {
@@ -163,24 +169,24 @@ public class GeneticAlgorithm<T> {
 //        improvement = iterations;
 //      }
 
-      if (iterations % 5000 == 0) {
-        double[] xsLo = new double[los.size()];
-        double[] xsHi = new double[his.size()];
-        double[] ys = new double[his.size()];
-        for (int i = 0; i < los.size(); i++) {
-          xsLo[i] = los.get(i);
-          xsHi[i] = his.get(i);
-          ys[i] = deltas.get(i);
-        }
-
-        lrLo = new LinearRegression(ys, xsLo);
-        lrHi = new LinearRegression(ys, xsHi);
-
-        // start recording from the beginning
-        los = new ArrayList<>();
-        his = new ArrayList<>();
-        deltas = new ArrayList<>();
-      }
+//      if (iterations % 5000 == 0) {
+//        double[] ysLo = new double[los.size()];
+//        double[] ysHi = new double[his.size()];
+//        double[] deltas = new double[his.size()];
+//        for (int i = 0; i < los.size(); i++) {
+//          ysLo[i] = los.get(i);
+//          ysHi[i] = his.get(i);
+//          deltas[i] = this.deltas.get(i);
+//        }
+//
+//        lrLo = new LinearRegression(deltas, ysLo);
+//        lrHi = new LinearRegression(deltas, ysHi);
+//
+//        // start recording from the beginning
+//        los = new ArrayList<>();
+//        his = new ArrayList<>();
+//        this.deltas = new ArrayList<>();
+//      }
 
       oldPopulationValues = currentPopulationValues;
       double currentBest = population.get(0).getFitness();
@@ -192,9 +198,15 @@ public class GeneticAlgorithm<T> {
 
       // TODO test this with different parameters, because it seems to work fairly well.
       // also test without this delta adjustment
+      double newPopulationDelta = population.get(0).getFitness() / f
+          - population.get(population.size() - 1).getFitness() / f;
+      loSample = lrLo == null ? lower.sample() :
+          lrLo.predict(newPopulationDelta) + random.nextGaussian() * 0.03;
+      hiSample = lrHi == null ? upper.sample()
+          : lrHi.predict(newPopulationDelta) + random.nextGaussian() * 0.03;
       deltaAdjustment(loSample, hiSample);
 
-      if (iterations % 1000 == 0) {
+      if (iterations % 4000 == 0) {
         logger.info(String.format(
             "Completed %s steps. Best fitness: %s (%.4f)", iterations, best.getFitness(),
             new Evaluator((SolutionInstance) best.getUnit().getValue()).totalGoal()));
@@ -210,15 +222,15 @@ public class GeneticAlgorithm<T> {
     double delta =
         population.get(0).getFitness() / f - population.get(population.size() - 1).getFitness() / f;
 
-    deltas.add(delta);
-
-    if (lrLo != null) {
-      lowerBound = lrLo.predict(delta) + random.nextGaussian() * 0.03;
-      upperBound = lrHi.predict(delta) + random.nextGaussian() * 0.03;
-    }
+//    if (lrLo != null) {
+//      lowerBound = lrLo.predict(delta) + random.nextGaussian() * 0.03;
+//      upperBound = lrHi.predict(delta) + random.nextGaussian() * 0.03;
+//    }
 
     // if all fitnesses are too similar, then increase mutation probability and decrease crossover.
     // otherwise, decrease mutation probability and increase crossover
+//    lowerBound = 0.03 + 0.03 * random.nextGaussian();
+//    upperBound = 0.10 + 0.05 * random.nextGaussian();
     if (delta <= lowerBound) {
       populationInfo.mutationProbability = Math.min(1.0,
           populationInfo.mutationProbability * 1.05);
@@ -230,9 +242,6 @@ public class GeneticAlgorithm<T> {
       populationInfo.mutationProbability = Math.max(0.3,
           populationInfo.mutationProbability * 0.95);
     }
-
-    los.add(lowerBound);
-    his.add(upperBound);
   }
 
   private List<UnitAndFitness<T>> evolve(List<UnitAndFitness<T>> population) {
@@ -256,7 +265,7 @@ public class GeneticAlgorithm<T> {
       newPopulation.add(new UnitAndFitness<>(child, currentFitness));
 
       // TODO this also seems to work well, but try without it.
-      mutate = Math.min(1.0, mutate * 1.05);
+      mutate = Math.min(1.0, mutate * 1.1);
     }
 
     return sortedByDescendingFitness(newPopulation);
