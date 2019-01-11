@@ -164,7 +164,7 @@ public class GeneticAlgorithm<T> {
 
       // TODO test this with different parameters, because it seems to work fairly well.
       // also test without this delta adjustment
-      deltaAdjustment();
+      deltaAdjustment(0.03, 0.05);
 
       if (iterations % 1000 == 0) {
         logger.info(String.format(
@@ -177,17 +177,18 @@ public class GeneticAlgorithm<T> {
     return population.get(0);
   }
 
-  private void deltaAdjustment() {
-    double f = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
-    double delta =
-        population.get(0).getFitness() / f - population.get(population.size() - 1).getFitness() / f;
+  private void deltaAdjustment(double lo, double hi) {
+    double normalization = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
+    double deltaWorstBest =
+        (population.get(0).getFitness() - population.get(population.size() - 1).getFitness());
+    double deltaWorstBestNormalized = deltaWorstBest / normalization;
 
-    if (delta <= 0.03) {
+    if (deltaWorstBestNormalized <= lo) {
       populationInfo.mutationProbability = Math.min(1.0,
           populationInfo.mutationProbability * 1.05);
       populationInfo.crossoverProbability = Math.max(0.3,
           populationInfo.crossoverProbability * 0.95);
-    } else if (delta >= 0.05) {
+    } else if (deltaWorstBestNormalized >= hi) {
       populationInfo.crossoverProbability = Math.min(1.0,
           populationInfo.crossoverProbability * 1.05);
       populationInfo.mutationProbability = Math.max(0.3,
