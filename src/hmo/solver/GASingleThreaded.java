@@ -22,17 +22,15 @@ import java.util.stream.Stream;
 public class GASingleThreaded {
 
   public Iterator<Pair<PopulationInfo, UnitAndFitness<SolutionInstance>>> solve(
+      Random generatorRandom,
       Problem problem,
       Parameters parameters) {
-    IterationBounds iterationBounds = new IterationBounds(50_000, 1);
-    Random random = new Random(42L);
     GAMeta meta = new GAMeta();
-
-    SolutionInstanceGenerator generator = new SmarterGenerator(random, problem, meta);
+    SolutionInstanceGenerator generator = new SmarterGenerator(generatorRandom, problem, meta);
     GARunner runner = new GARunner(generator);
 
     Stream<Pair<PopulationInfo, Future<UnitAndFitness<SolutionInstance>>>> resultsStream =
-        runner.evaluate(iterationBounds, Collections.singletonList(parameters))
+        runner.evaluate(Collections.singletonList(parameters))
             .map(pair -> new Pair<>(pair.first,
                 CompletableFuture.completedFuture(Utils.unchecked(() -> pair.second.call()))));
 

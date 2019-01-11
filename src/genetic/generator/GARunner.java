@@ -21,7 +21,6 @@ public class GARunner {
   }
 
   public Stream<Pair<PopulationInfo, Callable<UnitAndFitness<SolutionInstance>>>> evaluate(
-      IterationBounds iterationBounds,
       List<Parameters> parameters) {
     return parameters
         .stream()
@@ -30,11 +29,11 @@ public class GARunner {
             new GeneticAlgorithm<>(
                 new UnitGenerator<>(generator::unitGenerator),
                 parameter.populationInfo,
-                iterationBounds,
+                parameter.iterationBounds,
                 generator::fitnessFunction,
                 generator::crossover,
                 generator::mutator,
-                generator.random,
+                parameter.random,
                 generator.logger)))
         .map(ga -> new Pair<>(ga.first, ga.second::iterate));
   }

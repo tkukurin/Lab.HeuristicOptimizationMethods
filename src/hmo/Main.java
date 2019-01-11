@@ -1,5 +1,6 @@
 package hmo;
 
+import genetic.common.IterationBounds;
 import genetic.common.Pair;
 import genetic.common.PopulationInfo;
 import genetic.common.Parameters;
@@ -40,7 +41,7 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
 //    Path inputFilePath = Paths.get("inputs/dummy-lesstracks.txt");
-    Path inputFilePath = Paths.get("instanca1.txt");
+    Path inputFilePath = Paths.get("instanca3.txt");
     String inputFileName = inputFilePath.getFileName().toString();
     final FileReader inputReader = new FileReader(inputFilePath.toFile());
 
@@ -52,7 +53,27 @@ public class Main {
     ExecutorService executorService = Executors
         .newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     Iterator<Pair<PopulationInfo, SolutionInstance>> gaSolutionIterator = new GAMultiThreaded()
-        .solve(problem, executorService, new Parameters(new PopulationInfo(50, 3, 0.99, 0.99)));
+        .solve(
+            new Random(42L),
+            problem,
+            executorService,
+            new Parameters(
+                new PopulationInfo(25, 1, 0.99, 0.99),
+                new IterationBounds(25_000, 1),
+                new Random()),
+            new Parameters(
+                new PopulationInfo(20, 2, 0.99, 0.9),
+                new IterationBounds(30_000, 1),
+                new Random()),
+            new Parameters(
+                new PopulationInfo(15, 2, 0.99, 0.8),
+                new IterationBounds(30_000, 1),
+                new Random()),
+            new Parameters(
+                new PopulationInfo(100, 1, 0.99, 0.5),
+                new IterationBounds(30_000, 1),
+                new Random())
+        );
 
     double highestGoal = Double.MIN_VALUE;
     while (gaSolutionIterator.hasNext()) {

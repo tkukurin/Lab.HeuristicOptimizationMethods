@@ -77,13 +77,12 @@ public class GeneticAlgorithm<T> {
   private Random random;
   private Logger logger;
 
-  private BayesValue upper;
-  private BayesValue lower;
+  private BayesValue bayesHi;
+  private BayesValue bayesLo;
   private final PopulationInfo initialPopulation;
 
-  private LinearRegression lrLo = null;
-  private LinearRegression lrHi = null;
-
+  private LinearRegression regressionLo = null;
+  private LinearRegression regressionHi = null;
 
   public GeneticAlgorithm(
       UnitGenerator<T> unitGenerator,
@@ -105,108 +104,108 @@ public class GeneticAlgorithm<T> {
     this.logger = logger;
     this.initialPopulation = new PopulationInfo(populationInfo);
 
-    this.lower = new BayesValue(0.05, 0.05);
-    this.upper = new BayesValue(0.15, 0.05);
+    this.bayesLo = new BayesValue(0.05, 0.05);
+    this.bayesHi = new BayesValue(0.15, 0.05);
   }
 
   private List<Double> deltas = new ArrayList<>();
-  List<Double> los = new ArrayList<>();
-  List<Double> his = new ArrayList<>();
+  private List<Double> los = new ArrayList<>();
+  private List<Double> his = new ArrayList<>();
 
   public UnitAndFitness<T> iterate() {
+    // TODO these are parameters you can change
+    boolean doLinearRegression = false;
+    boolean sampleDeltaAdjustment = false;
+
     int iterations = 0;
+    int lastImprovementIteration = 0;
     UnitAndFitness<T> best = new UnitAndFitness<>(new Unit<>(null), 0.0);
 
-    int improvement = 0;
-    double oldPopulationValues = //population.get(0).getFitness();
+    double oldPopulationValues =
         population.stream()
         .mapToDouble(UnitAndFitness::getFitness)
         .filter(Double::isFinite)
         .sum();
 
-    double loSample = lower.sample();
-    double hiSample = upper.sample();
+    double loSample = bayesLo.sample();
+    double hiSample = bayesHi.sample();
     while (!iterationBounds.isComplete(iterations++)) {
-      double f = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
-      double oldPopulationDelta = population.get(0).getFitness() / f
-          - population.get(population.size() - 1).getFitness() / f;
+      double oldPopulationDelta = deltaBestWorst();
 
       population = evolve(population);
-      double currentPopulationValues = // population.get(0).getFitness();
+      double currentPopulationValues =
           population.stream().mapToDouble(UnitAndFitness::getFitness)
               .filter(Double::isFinite).sum();
+      if (currentPopulationValues > oldPopulationValues) {
+        if (regressionLo == null) {
+          lastImprovementIteration = iterations;
+          bayesLo.update(loSample);
+          bayesHi.update(hiSample);
+        }
 
-//      if (currentPopulationValues > oldPopulationValues) {
-//        deltas.add(oldPopulationDelta);
-//        los.add(loSample);
-//        his.add(hiSample);
-//      }
-
-      if (lrLo == null && currentPopulationValues > oldPopulationValues) {
-//        improvement = iterations;
-        lower.update(loSample);
-        upper.update(hiSample);
-//        bayesUpdatesLo.add(loSample);
-//        bayesUpdatesHi.add(hiSample);
-
-//        if (bayesUpdatesHi.size() == 100) {
-//          lower.update(bayesUpdatesLo);
-//          upper.update(bayesUpdatesHi);
-//          bayesUpdatesLo = new ArrayList<>();
-//          bayesUpdatesHi = new ArrayList<>();
-//        }
+        if (doLinearRegression) {
+          deltas.add(oldPopulationDelta);
+          los.add(loSample);
+          his.add(hiSample);
+        }
       } else {
-        lower.updateBad(loSample);
-        upper.updateBad(hiSample);
+        bayesLo.updateBad(loSample);
+        bayesHi.updateBad(hiSample);
       }
 
-//      if (iterations - 5000 > improvement) {
-//        System.out.println("reset");
-//        double lo = lower.sample();
-//        double up = upper.sample();
-//        lower = new BayesValue((lo + 0.05) / 2, (lo + 0.05) / 2);
-//        upper = new BayesValue((up + 0.15) / 2, (lo + up) / 2);
-//        improvement = iterations;
-//      }
+      if (iterations - 1000 > lastImprovementIteration) {
+        double lo = bayesLo.sample();
+        double up = bayesHi.sample();
+        bayesLo = new BayesValue((lo + bayesLo.getMean0()) / 2, (lo + bayesLo.getMean0()) / 2);
+        bayesHi = new BayesValue((up + bayesHi.getMean0()) / 2, (lo + up) / 2);
+        regressionLo = null;
+        regressionHi = null;
+        lastImprovementIteration = iterations;
+      }
 
-//      if (iterations % 5000 == 0) {
-//        double[] ysLo = new double[los.size()];
-//        double[] ysHi = new double[his.size()];
-//        double[] deltas = new double[his.size()];
-//        for (int i = 0; i < los.size(); i++) {
-//          ysLo[i] = los.get(i);
-//          ysHi[i] = his.get(i);
-//          deltas[i] = this.deltas.get(i);
-//        }
-//
-//        lrLo = new LinearRegression(deltas, ysLo);
-//        lrHi = new LinearRegression(deltas, ysHi);
-//
-//        // start recording from the beginning
-//        los = new ArrayList<>();
-//        his = new ArrayList<>();
-//        this.deltas = new ArrayList<>();
-//      }
+      if (doLinearRegression && iterations % 3000 == 0) {
+        double[] ysLo = new double[los.size()];
+        double[] ysHi = new double[his.size()];
+        double[] xsDeltas = new double[his.size()];
+        for (int i = 0; i < los.size(); i++) {
+          ysLo[i] = los.get(i);
+          ysHi[i] = his.get(i);
+          xsDeltas[i] = deltas.get(i);
+        }
+
+        regressionLo = new LinearRegression(xsDeltas, ysLo);
+        regressionHi = new LinearRegression(xsDeltas, ysHi);
+
+        // start recording from the beginning
+        los = new ArrayList<>();
+        his = new ArrayList<>();
+        deltas = new ArrayList<>();
+      }
 
       oldPopulationValues = currentPopulationValues;
       double currentBest = population.get(0).getFitness();
 
       if (currentBest > best.getFitness()) {
         best = population.get(0);
-        improvement = iterations;
+        lastImprovementIteration = iterations;
       }
 
       // TODO test this with different parameters, because it seems to work fairly well.
       // also test without this delta adjustment
-      double newPopulationDelta = population.get(0).getFitness() / f
-          - population.get(population.size() - 1).getFitness() / f;
-      loSample = lrLo == null ? lower.sample() :
-          lrLo.predict(newPopulationDelta) + random.nextGaussian() * 0.03;
-      hiSample = lrHi == null ? upper.sample()
-          : lrHi.predict(newPopulationDelta) + random.nextGaussian() * 0.03;
-      deltaAdjustment(loSample, hiSample);
+      if (sampleDeltaAdjustment) {
+        double newPopulationDelta = deltaBestWorst();
+        loSample = regressionLo == null ? bayesLo.sample() :
+            regressionLo.predict(newPopulationDelta) + random.nextGaussian() * bayesLo
+                .getVariance0();
+        hiSample = regressionHi == null ? bayesHi.sample()
+            : regressionHi.predict(newPopulationDelta) + random.nextGaussian() * bayesHi
+                .getVariance0();
+        deltaAdjustment(loSample, hiSample);
+      } else {
+        deltaAdjustment(0.03, 0.05);
+      }
 
-      if (iterations % 4000 == 0) {
+      if (iterations % 1000 == 0) {
         logger.info(String.format(
             "Completed %s steps. Best fitness: %s (%.4f)", iterations, best.getFitness(),
             new Evaluator((SolutionInstance) best.getUnit().getValue()).totalGoal()));
@@ -218,30 +217,27 @@ public class GeneticAlgorithm<T> {
   }
 
   private void deltaAdjustment(double lowerBound, double upperBound) {
-    double f = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
-    double delta =
-        population.get(0).getFitness() / f - population.get(population.size() - 1).getFitness() / f;
-
-//    if (lrLo != null) {
-//      lowerBound = lrLo.predict(delta) + random.nextGaussian() * 0.03;
-//      upperBound = lrHi.predict(delta) + random.nextGaussian() * 0.03;
-//    }
+    double deltaBestWorstNormalized = deltaBestWorst();
 
     // if all fitnesses are too similar, then increase mutation probability and decrease crossover.
     // otherwise, decrease mutation probability and increase crossover
-//    lowerBound = 0.03 + 0.03 * random.nextGaussian();
-//    upperBound = 0.10 + 0.05 * random.nextGaussian();
-    if (delta <= lowerBound) {
+    if (deltaBestWorstNormalized <= lowerBound) {
       populationInfo.mutationProbability = Math.min(1.0,
           populationInfo.mutationProbability * 1.05);
       populationInfo.crossoverProbability = Math.max(0.3,
           populationInfo.crossoverProbability * 0.95);
-    } else if (delta >= upperBound) {
+    } else if (deltaBestWorstNormalized >= upperBound) {
       populationInfo.crossoverProbability = Math.min(1.0,
           populationInfo.crossoverProbability * 1.05);
       populationInfo.mutationProbability = Math.max(0.3,
           populationInfo.mutationProbability * 0.95);
     }
+  }
+
+  private double deltaBestWorst() {
+    double normalization = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
+    return (population.get(0).getFitness() - population.get(population.size() - 1).getFitness())
+        / normalization;
   }
 
   private List<UnitAndFitness<T>> evolve(List<UnitAndFitness<T>> population) {

@@ -48,7 +48,7 @@ public class SmarterGenerator extends SolutionInstanceGenerator {
   }
 
   private SolutionInstance longestTrackCombinator(SolutionInstance s1, SolutionInstance s2) {
-    Comparator<TrackInstance> comparator = Comparator.<TrackInstance>comparingDouble(
+    Comparator<TrackInstance> comparator = Comparator.comparingDouble(
         t -> t.getAvailableSpace() / t.getTrack().getTrackLength());
     List<TrackInstance> t1 =
         s1.getTrackInstances().stream()

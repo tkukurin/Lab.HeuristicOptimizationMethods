@@ -26,18 +26,17 @@ import java.util.stream.Stream;
 public class GAMultiThreaded {
 
   public Iterator<Pair<PopulationInfo, SolutionInstance>> solve(
+      Random generatorRandom,
       Problem problem,
       ExecutorService executorService,
       Parameters ... parameters) {
-    IterationBounds iterationBounds = new IterationBounds(50_000, 1);
-    Random random = new Random(42L);
     GAMeta meta = new GAMeta();
 
-    SolutionInstanceGenerator generator = new SmarterGenerator(random, problem, meta);
+    SolutionInstanceGenerator generator = new SmarterGenerator(generatorRandom, problem, meta);
     GARunner runner = new GARunner(generator);
 
     Stream<Pair<PopulationInfo, Future<UnitAndFitness<SolutionInstance>>>> resultsStream =
-        runner.evaluate(iterationBounds, Arrays.asList(parameters))
+        runner.evaluate(Arrays.asList(parameters))
             .map(pair -> new Pair<>(pair.first, executorService.submit(pair.second)));
 
     List<Pair<PopulationInfo, Future<UnitAndFitness<SolutionInstance>>>> results =
