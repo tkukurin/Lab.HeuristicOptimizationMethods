@@ -18,6 +18,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+// TODO try with SolutionInstanceGenerator as its parent class
 public class SmarterGenerator extends TabooGenerator {
 
   public SmarterGenerator(Random random, Problem problem, GAMeta meta) {

@@ -1,9 +1,9 @@
 package genetic.generator;
 
 import genetic.GeneticAlgorithm;
-import genetic.GeneticAlgorithm.IterationBounds;
-import genetic.GeneticAlgorithm.Pair;
-import genetic.GeneticAlgorithm.PopulationInfo;
+import genetic.common.IterationBounds;
+import genetic.common.Pair;
+import genetic.common.PopulationInfo;
 import genetic.GeneticAlgorithm.UnitAndFitness;
 import genetic.GeneticAlgorithm.UnitGenerator;
 import genetic.common.Parameters;
@@ -26,7 +26,7 @@ public class GARunner {
     return parameters
         .stream()
         .map(parameter -> new Pair<>(
-            parameter.populationInfo,
+            new PopulationInfo(parameter.populationInfo),
             new GeneticAlgorithm<>(
                 new UnitGenerator<>(generator::unitGenerator),
                 parameter.populationInfo,

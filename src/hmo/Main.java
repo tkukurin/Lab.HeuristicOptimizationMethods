@@ -1,12 +1,13 @@
 package hmo;
 
-import genetic.GeneticAlgorithm.Pair;
-import genetic.GeneticAlgorithm.PopulationInfo;
+import genetic.common.Pair;
+import genetic.common.PopulationInfo;
+import genetic.common.Parameters;
 import hmo.instance.SolutionInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
-import hmo.solver.GeneticAlgorithmSolver;
+import hmo.solver.GAMultiThreaded;
 import hmo.solver.GreedySolver;
 import java.io.BufferedWriter;
 import java.io.FileReader;
@@ -50,10 +51,10 @@ public class Main {
 
     ExecutorService executorService = Executors
         .newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    Iterator<Pair<PopulationInfo, SolutionInstance>> gaSolutionIterator =
-        GeneticAlgorithmSolver.solve(problem, executorService);
-    double highestGoal = Double.MIN_VALUE;
+    Iterator<Pair<PopulationInfo, SolutionInstance>> gaSolutionIterator = new GAMultiThreaded()
+        .solve(problem, executorService, new Parameters(new PopulationInfo(50, 3, 0.99, 0.99)));
 
+    double highestGoal = Double.MIN_VALUE;
     while (gaSolutionIterator.hasNext()) {
       Pair<PopulationInfo, SolutionInstance> solutionPair = gaSolutionIterator.next();
       if (solutionPair == null) {
