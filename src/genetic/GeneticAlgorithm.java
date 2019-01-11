@@ -1,11 +1,21 @@
 package genetic;
 
+import genetic.bayes.BayesValue;
+import genetic.common.IterationBounds;
+import genetic.common.LinearRegression;
+import genetic.common.Pair;
+import genetic.common.PopulationInfo;
 import genetic.common.Unit;
 import hmo.Evaluator;
-import hmo.common.Utils;
 import hmo.instance.SolutionInstance;
-import java.util.*;
-import java.util.function.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -13,69 +23,6 @@ import java.util.stream.Stream;
 
 /** Maximizes given function. */
 public class GeneticAlgorithm<T> {
-
-  public static class Pair<A, B> {
-    public A first;
-    public B second;
-
-    public Pair(A first, B second) {
-      this.first = first;
-      this.second = second;
-    }
-  }
-
-  public static class PopulationInfo {
-    int size;
-    int elitism;
-
-    double mutationProbability;
-    double crossoverProbability;
-
-    public PopulationInfo(int size, int elitism, double mutationProbability, double crossoverProbability) {
-      this.size = size;
-      this.elitism = elitism;
-      this.mutationProbability = mutationProbability;
-      this.crossoverProbability = crossoverProbability;
-    }
-
-    @Override
-    public String toString() {
-      return "PopulationInfo{" +
-              "size=" + size +
-              ", elitism=" + elitism +
-              ", mutationProbability=" + mutationProbability +
-              ", crossoverProbability=" + crossoverProbability +
-              '}';
-    }
-  }
-
-  public static class IterationBounds {
-    int numIterations;
-    double deltaThreshold;
-
-
-    public IterationBounds(int numIterations, double deltaThreshold) {
-      this.numIterations = numIterations;
-      this.deltaThreshold = deltaThreshold;
-    }
-
-    boolean complete(int numIterations) {
-//      Double lastError = lastErrors.peekLast();
-//      ArrayDeque<Double> errorsShifted = new ArrayDeque<>(lastErrors);
-//      errorsShifted.addFirst(errorsShifted.pollLast());
-//
-//      double maxDeltaBetweenIterations = Utils
-//          .zip(new ArrayList<>(lastErrors), new ArrayList<>(errorsShifted))
-//          .stream()
-//          .map(pair -> Math.abs(pair.first - pair.second))
-//          .max(Comparator.comparingDouble(d -> d))
-//          .orElse(Double.MAX_VALUE);
-
-      return numIterations == this.numIterations;
-//          || lastError <= this.deltaThreshold
-//          || (errorsShifted.size() > 1 && maxDeltaBetweenIterations <= this.deltaThreshold);
-    }
-  }
 
   public static class UnitGenerator<T> {
     private final Supplier<T> supplier;
@@ -130,6 +77,14 @@ public class GeneticAlgorithm<T> {
   private Random random;
   private Logger logger;
 
+  private BayesValue upper;
+  private BayesValue lower;
+  private final PopulationInfo initialPopulation;
+
+  private LinearRegression lrLo = null;
+  private LinearRegression lrHi = null;
+
+
   public GeneticAlgorithm(
       UnitGenerator<T> unitGenerator,
       PopulationInfo populationInfo,
@@ -148,25 +103,110 @@ public class GeneticAlgorithm<T> {
     this.population = sortedByDescendingFitness(unitGenerator.init(populationInfo.size).stream()
         .map(unit -> new UnitAndFitness<>(unit, fitnessEvaluator.apply(unit.value))));
     this.logger = logger;
+    this.initialPopulation = new PopulationInfo(populationInfo);
+
+    this.lower = new BayesValue(0.05, 0.05);
+    this.upper = new BayesValue(0.15, 0.05);
   }
+
+  private List<Double> deltas = new ArrayList<>();
+  List<Double> los = new ArrayList<>();
+  List<Double> his = new ArrayList<>();
 
   public UnitAndFitness<T> iterate() {
     int iterations = 0;
     UnitAndFitness<T> best = new UnitAndFitness<>(new Unit<>(null), 0.0);
 
-    while (!iterationBounds.complete(iterations++)) {
+    int improvement = 0;
+    double oldPopulationValues = //population.get(0).getFitness();
+        population.stream()
+        .mapToDouble(UnitAndFitness::getFitness)
+        .filter(Double::isFinite)
+        .sum();
+
+    double loSample = lower.sample();
+    double hiSample = upper.sample();
+    while (!iterationBounds.isComplete(iterations++)) {
+      double f = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
+      double oldPopulationDelta = population.get(0).getFitness() / f
+          - population.get(population.size() - 1).getFitness() / f;
+
       population = evolve(population);
-      Double currentBest = population.get(0).getFitness();
+      double currentPopulationValues = // population.get(0).getFitness();
+          population.stream().mapToDouble(UnitAndFitness::getFitness)
+              .filter(Double::isFinite).sum();
+
+//      if (currentPopulationValues > oldPopulationValues) {
+//        deltas.add(oldPopulationDelta);
+//        los.add(loSample);
+//        his.add(hiSample);
+//      }
+
+      if (lrLo == null && currentPopulationValues > oldPopulationValues) {
+//        improvement = iterations;
+        lower.update(loSample);
+        upper.update(hiSample);
+//        bayesUpdatesLo.add(loSample);
+//        bayesUpdatesHi.add(hiSample);
+
+//        if (bayesUpdatesHi.size() == 100) {
+//          lower.update(bayesUpdatesLo);
+//          upper.update(bayesUpdatesHi);
+//          bayesUpdatesLo = new ArrayList<>();
+//          bayesUpdatesHi = new ArrayList<>();
+//        }
+      } else {
+        lower.updateBad(loSample);
+        upper.updateBad(hiSample);
+      }
+
+//      if (iterations - 5000 > improvement) {
+//        System.out.println("reset");
+//        double lo = lower.sample();
+//        double up = upper.sample();
+//        lower = new BayesValue((lo + 0.05) / 2, (lo + 0.05) / 2);
+//        upper = new BayesValue((up + 0.15) / 2, (lo + up) / 2);
+//        improvement = iterations;
+//      }
+
+//      if (iterations % 5000 == 0) {
+//        double[] ysLo = new double[los.size()];
+//        double[] ysHi = new double[his.size()];
+//        double[] deltas = new double[his.size()];
+//        for (int i = 0; i < los.size(); i++) {
+//          ysLo[i] = los.get(i);
+//          ysHi[i] = his.get(i);
+//          deltas[i] = this.deltas.get(i);
+//        }
+//
+//        lrLo = new LinearRegression(deltas, ysLo);
+//        lrHi = new LinearRegression(deltas, ysHi);
+//
+//        // start recording from the beginning
+//        los = new ArrayList<>();
+//        his = new ArrayList<>();
+//        this.deltas = new ArrayList<>();
+//      }
+
+      oldPopulationValues = currentPopulationValues;
+      double currentBest = population.get(0).getFitness();
 
       if (currentBest > best.getFitness()) {
         best = population.get(0);
+        improvement = iterations;
       }
 
       // TODO test this with different parameters, because it seems to work fairly well.
       // also test without this delta adjustment
-      deltaAdjustment(0.03, 0.05);
+      double newPopulationDelta = population.get(0).getFitness() / f
+          - population.get(population.size() - 1).getFitness() / f;
+      loSample = lrLo == null ? lower.sample() :
+          lrLo.predict(newPopulationDelta) + random.nextGaussian() * 0.03;
+      hiSample = lrHi == null ? upper.sample()
+          : lrHi.predict(newPopulationDelta) + random.nextGaussian() * 0.03;
+      deltaAdjustment(loSample, hiSample);
 
-      if (iterations % 1000 == 0) {
+      if (iterations % 4000 == 0) {
         logger.info(String.format(
             "Completed %s steps. Best fitness: %s (%.4f)", iterations, best.getFitness(),
             new Evaluator((SolutionInstance) best.getUnit().getValue()).totalGoal()));
@@ -177,18 +217,26 @@ public class GeneticAlgorithm<T> {
     return population.get(0);
   }
 
-  private void deltaAdjustment(double lo, double hi) {
-    double normalization = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
-    double deltaWorstBest =
-        (population.get(0).getFitness() - population.get(population.size() - 1).getFitness());
-    double deltaWorstBestNormalized = deltaWorstBest / normalization;
+  private void deltaAdjustment(double lowerBound, double upperBound) {
+    double f = population.stream().mapToDouble(UnitAndFitness::getFitness).sum();
+    double delta =
+        population.get(0).getFitness() / f - population.get(population.size() - 1).getFitness() / f;
 
-    if (deltaWorstBestNormalized <= lo) {
+//    if (lrLo != null) {
+//      lowerBound = lrLo.predict(delta) + random.nextGaussian() * 0.03;
+//      upperBound = lrHi.predict(delta) + random.nextGaussian() * 0.03;
+//    }
+
+    // if all fitnesses are too similar, then increase mutation probability and decrease crossover.
+    // otherwise, decrease mutation probability and increase crossover
+//    lowerBound = 0.03 + 0.03 * random.nextGaussian();
+//    upperBound = 0.10 + 0.05 * random.nextGaussian();
+    if (delta <= lowerBound) {
       populationInfo.mutationProbability = Math.min(1.0,
           populationInfo.mutationProbability * 1.05);
       populationInfo.crossoverProbability = Math.max(0.3,
           populationInfo.crossoverProbability * 0.95);
-    } else if (deltaWorstBestNormalized >= hi) {
+    } else if (delta >= upperBound) {
       populationInfo.crossoverProbability = Math.min(1.0,
           populationInfo.crossoverProbability * 1.05);
       populationInfo.mutationProbability = Math.max(0.3,
@@ -213,10 +261,11 @@ public class GeneticAlgorithm<T> {
         child = mutator.apply(child);
       }
 
-      newPopulation.add(new UnitAndFitness<>(child, fitnessEvaluator.apply(child.value)));
+      double currentFitness = fitnessEvaluator.apply(child.value);
+      newPopulation.add(new UnitAndFitness<>(child, currentFitness));
 
       // TODO this also seems to work well, but try without it.
-      mutate = Math.min(1.0, mutate * 1.05);
+      mutate = Math.min(1.0, mutate * 1.1);
     }
 
     return sortedByDescendingFitness(newPopulation);

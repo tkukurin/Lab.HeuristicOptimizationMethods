@@ -1,7 +1,5 @@
 package genetic.common;
 
-import genetic.GeneticAlgorithm.PopulationInfo;
-
 public class Parameters {
   public PopulationInfo populationInfo;
 

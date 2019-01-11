@@ -1,7 +1,6 @@
 package hmo.common;
 
-import genetic.GeneticAlgorithm.Pair;
-import java.nio.file.Path;
+import genetic.common.Pair;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;

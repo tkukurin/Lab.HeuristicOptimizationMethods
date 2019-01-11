@@ -40,15 +40,16 @@ public abstract class TabooGenerator extends SolutionInstanceGenerator {
     return taboo(super.mutator(solutionInstance), si -> super.mutator(solutionInstance));
   }
 
-  private SolutionInstance taboo(SolutionInstance solutionInstance,
+  private SolutionInstance taboo(
+      SolutionInstance initialInstance,
       Function<SolutionInstance, SolutionInstance> function) {
     int iteration = 0;
-    while (recentInstances.contains(solutionInstance) && iteration++ < ITERATIONS_BEFORE_GIVING_UP) {
-      solutionInstance = function.apply(solutionInstance);
+    while (recentInstances.contains(initialInstance) && iteration++ < ITERATIONS_BEFORE_GIVING_UP) {
+      initialInstance = function.apply(initialInstance);
     }
-    recentInstances.add(solutionInstance);
-    recentInstancesQueue.offer(solutionInstance);
+    recentInstances.add(initialInstance);
+    recentInstancesQueue.offer(initialInstance);
     recentInstances.remove(recentInstancesQueue.poll());
-    return solutionInstance;
+    return initialInstance;
   }
 }
