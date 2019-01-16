@@ -3,11 +3,14 @@ package genetic.common;
 public class IterationBounds {
   int numIterations;
   double deltaThreshold;
+  private boolean started;
+  private long startTime;
 
 
   public IterationBounds(int numIterations, double deltaThreshold) {
     this.numIterations = numIterations;
     this.deltaThreshold = deltaThreshold;
+    started = false;
   }
 
   public boolean isComplete(int numIterations) {
@@ -25,5 +28,15 @@ public class IterationBounds {
     return numIterations == this.numIterations;
 //          || lastError <= this.deltaThreshold
 //          || (errorsShifted.size() > 1 && maxDeltaBetweenIterations <= this.deltaThreshold);
+  }
+
+  public boolean timeRanOut(long durationInMilis) {
+    if (!started) {
+      started = true;
+      startTime = System.currentTimeMillis();
+      return false;
+    } else {
+      return (startTime + durationInMilis < System.currentTimeMillis());
+    }
   }
 }
