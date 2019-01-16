@@ -4,6 +4,7 @@ import hmo.common.TrackUtils;
 import hmo.instance.SolutionInstance;
 import hmo.instance.TrackInstance;
 import hmo.instance.VehicleInstance;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -88,7 +89,7 @@ public class Evaluator {
     return count;
   }
 
-  private double p1f1() {
+  public double p1f1() {
     int f1 = 0;
     boolean first = true;
     int previousType = -1;
@@ -114,13 +115,13 @@ public class Evaluator {
     return Math.pow(solutionInstance.nUsedTracks() - 1, -1) * (double) f1;
   }
 
-  private double p2f2() {
+  public double p2f2() {
     int nTotalTracks = solutionInstance.getProblem().getTracks().size();
     //System.out.println("p2f2=" + Math.pow(nTotalTracks, -1) * solutionInstance.nUsedTracks());
     return Math.pow(nTotalTracks, -1) * solutionInstance.nUsedTracks();
   }
 
-  private double p3f3() {
+  public double p3f3() {
     int totalTrackLength = solutionInstance.getProblem().getTotalTrackLength();
     int totalVehicleLength = solutionInstance.getProblem().getTotalVehicleLength();
     double f3 = 0;
@@ -133,7 +134,7 @@ public class Evaluator {
     return Math.pow(totalTrackLength - totalVehicleLength, -1) * f3;
   }
 
-  private double r1g1() {
+  public double r1g1() {
     int r1 =
         solutionInstance.getProblem().getVehicles().size() - solutionInstance.nUsedTracks();
     int g1 = 0;
@@ -160,7 +161,7 @@ public class Evaluator {
     return Math.pow(r1, -1) * (double) g1;
   }
 
-  private double r2g2() {
+  public double r2g2() {
     int r2 = solutionInstance.nUsedTracks() - 1;
     int g2 = 0;
 
@@ -177,7 +178,8 @@ public class Evaluator {
           if (temp == previousType) {
             g2++;
           }
-          previousType = temp;
+          previousType = track.getParkedVehicles().get(track.getParkedVehicles().size() - 1)
+                  .getVehicle().getLayoutType();
         }
       }
     }
@@ -186,7 +188,7 @@ public class Evaluator {
     return Math.pow(r2, -1) * (double) g2;
   }
 
-  private double r3g3() {
+  public double r3g3() {
     int r3 = 0;
     int g3 = 0;
     for (TrackInstance track : solutionInstance.getTrackInstancesInorder()) {
