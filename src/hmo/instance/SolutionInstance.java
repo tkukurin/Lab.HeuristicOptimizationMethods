@@ -6,17 +6,9 @@ import hmo.common.Utils;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
-import java.util.AbstractMap;
-import java.util.AbstractMap.SimpleEntry;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -120,6 +112,13 @@ public class SolutionInstance {
     return trackToInstance.values().stream()
         .filter(ti -> ti.canAdd(vehicle))
         .collect(Collectors.toList());
+  }
+
+  public List<TrackInstance> getTracksWithASingleVehicle() {
+    // move this to a map if too slow.
+    return trackToInstance.values().stream()
+            .filter(ti -> ti.getParkedVehicles().size() == 1)
+            .collect(Collectors.toList());
   }
 
   public TrackInstance getInstance(Track track) {
