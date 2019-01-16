@@ -10,12 +10,9 @@ import hmo.instance.VehicleInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 public class SmarterGenerator extends SolutionInstanceGenerator {
@@ -80,9 +77,23 @@ public class SmarterGenerator extends SolutionInstanceGenerator {
         (double) solutionInstance.getAssignedVehicles().size() / problem.getVehicles().size();
 
     if (vehicle == null || coinFlip(percentAssignedVehicles * meta.assignedVehiclesMultiplierProbability)) {
-      solutionInstance.resetVehiclePool();
-      solutionInstance.pollUsedVehicle(Utils.randomElement(problem.getTracks(), random), random);
-      return solutionInstance;
+      /*if (coinFlip(0.2)) {
+        List<TrackInstance> tracksWithASingleVehicle = solutionInstance.getTracksWithASingleVehicle();
+        TrackInstance chosenInstance = Utils.randomElement(tracksWithASingleVehicle, random);
+        if (chosenInstance != null) {
+          solutionInstance.resetVehiclePool();
+          solutionInstance.pollUsedVehicle(chosenInstance.getTrack(), random);
+          return solutionInstance;
+        } else {
+          solutionInstance.resetVehiclePool();
+          solutionInstance.pollUsedVehicle(Utils.randomElement(problem.getTracks(), random), random);
+          return solutionInstance;
+        }
+      } else {*/
+        solutionInstance.resetVehiclePool();
+        solutionInstance.pollUsedVehicle(Utils.randomElement(problem.getTracks(), random), random);
+        return solutionInstance;
+        //}
     }
 
     List<TrackInstance> allowedTracks = solutionInstance.getAllowedTracks(vehicle);
