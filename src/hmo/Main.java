@@ -2,33 +2,20 @@ package hmo;
 
 import genetic.common.IterationBounds;
 import genetic.common.Pair;
-import genetic.common.PopulationInfo;
 import genetic.common.Parameters;
+import genetic.common.PopulationInfo;
 import hmo.instance.SolutionInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
 import hmo.solver.GAMultiThreaded;
 import hmo.solver.GreedySolver;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
+
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Scanner;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -41,7 +28,7 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
 //    Path inputFilePath = Paths.get("inputs/dummy-lesstracks.txt");
-    Path inputFilePath = Paths.get("instanca3.txt");
+    Path inputFilePath = Paths.get("instanca1.txt");
     String inputFileName = inputFilePath.getFileName().toString();
     final FileReader inputReader = new FileReader(inputFilePath.toFile());
 
@@ -58,19 +45,19 @@ public class Main {
             problem,
             executorService,
             new Parameters(
-                new PopulationInfo(25, 1, 0.99, 0.99),
-                new IterationBounds(25_000, 1),
+                    new PopulationInfo(15, 1, 0.99, 0.99),
+                    new IterationBounds(30_000, 1),
                 new Random()),
             new Parameters(
-                new PopulationInfo(20, 2, 0.99, 0.9),
-                new IterationBounds(30_000, 1),
-                new Random()),
-            new Parameters(
-                new PopulationInfo(15, 2, 0.99, 0.8),
-                new IterationBounds(30_000, 1),
-                new Random()),
-            new Parameters(
-                new PopulationInfo(100, 1, 0.99, 0.5),
+                    new PopulationInfo(25, 1, 0.99, 0.99),
+                    new IterationBounds(30_000, 1),
+                    new Random()),
+                new Parameters(
+                        new PopulationInfo(50, 1, 0.99, 0.99),
+                        new IterationBounds(30_000, 1),
+                        new Random()),
+                new Parameters(
+                        new PopulationInfo(100, 1, 0.99, 0.99),
                 new IterationBounds(30_000, 1),
                 new Random())
         );
@@ -113,7 +100,9 @@ public class Main {
       double fst = evaluator.firstGoal();
       double snd = evaluator.secondGoal();
       double goal = snd / fst;
-      LOG.info(String.format("[%s] Fitness: %.3f/%.3f = %.3f", populationInfo, snd, fst, goal));
+      LOG.info(String.format("[%s] Fitness: %.8f/%.8f = %.4f", populationInfo, snd, fst, goal));
+      //LOG.info(String.format("[%s] Fitness: f1 = %.8f, f2 = %.8f, f3 = %.8f", populationInfo, evaluator.p1f1(), evaluator.p2f2(), evaluator.p3f3()));
+      //LOG.info(String.format("[%s] Fitness: g1 = %.8f, g2 = %.8f, g3 = %.8f", populationInfo, evaluator.r1g1(), evaluator.r2g2(), evaluator.r3g3()));
       if (goal > highestGoal) {
         highestGoal = goal;
         // just overwrite past best solutions. can also be handled better.
@@ -218,6 +207,7 @@ public class Main {
     final FileWriter outputWriter = new FileWriter("outputs/" + fileName);
     try (BufferedWriter writer = new BufferedWriter(outputWriter)) {
       writer.write(gaSolution.toString());
+      writer.write("\n");
     }
   }
 
