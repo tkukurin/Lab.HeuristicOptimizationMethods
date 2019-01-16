@@ -1,18 +1,11 @@
 package genetic;
 
 import genetic.bayes.BayesValue;
-import genetic.common.IterationBounds;
-import genetic.common.LinearRegression;
-import genetic.common.Pair;
-import genetic.common.PopulationInfo;
-import genetic.common.Unit;
+import genetic.common.*;
 import hmo.Evaluator;
 import hmo.instance.SolutionInstance;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
+
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -23,6 +16,11 @@ import java.util.stream.Stream;
 
 /** Maximizes given function. */
 public class GeneticAlgorithm<T> {
+
+    private final int ONE_MINUTE = 1 * 60 * 1000;
+    private final int FIVE_MINUTES = 5 * 60 * 1000;
+    private final int TEN_MINUTES = 10 * 60 * 1000;
+    private final int ITERATION_WITHOUT_IMPROVEMENT_LIMIT = 20000;
 
   public static class UnitGenerator<T> {
     private final Supplier<T> supplier;
@@ -119,6 +117,7 @@ public class GeneticAlgorithm<T> {
 
     int iterations = 0;
     int lastImprovementIteration = 0;
+      //double lastImprovement = 0.;
     UnitAndFitness<T> best = new UnitAndFitness<>(new Unit<>(null), 0.0);
 
     double oldPopulationValues =
@@ -129,7 +128,10 @@ public class GeneticAlgorithm<T> {
 
     double loSample = bayesLo.sample();
     double hiSample = bayesHi.sample();
-    while (!iterationBounds.isComplete(iterations++)) {
+      //while (!iterationBounds.timeRanOut(ONE_MINUTE)) {
+      //while(((iterations - lastImprovementIteration) <= ITERATION_WITHOUT_IMPROVEMENT_LIMIT) && (lastImprovement == 0 || lastImprovement > 1)) {
+      while (!iterationBounds.timeRanOut(FIVE_MINUTES)) {
+          iterations++;
       double oldPopulationDelta = deltaBestWorst();
 
       population = evolve(population);
@@ -186,6 +188,7 @@ public class GeneticAlgorithm<T> {
       double currentBest = population.get(0).getFitness();
 
       if (currentBest > best.getFitness()) {
+          //lastImprovement = currentBest - best.getFitness();
         best = population.get(0);
         lastImprovementIteration = iterations;
       }
