@@ -28,7 +28,7 @@ public class Main {
 
   public static void main(String[] args) throws IOException {
 //    Path inputFilePath = Paths.get("inputs/dummy-lesstracks.txt");
-    Path inputFilePath = Paths.get("instanca1.txt");
+    Path inputFilePath = Paths.get("instanca-predaja.txt");
     String inputFileName = inputFilePath.getFileName().toString();
     final FileReader inputReader = new FileReader(inputFilePath.toFile());
 
@@ -49,15 +49,15 @@ public class Main {
                     new IterationBounds(30_000, 1),
                 new Random()),
             new Parameters(
-                    new PopulationInfo(25, 1, 0.99, 0.99),
+                    new PopulationInfo(25, 1, 0.99, 0.9),
                     new IterationBounds(30_000, 1),
                     new Random()),
                 new Parameters(
-                        new PopulationInfo(50, 1, 0.99, 0.99),
+                        new PopulationInfo(25, 1, 0.99, 0.99),
                         new IterationBounds(30_000, 1),
                         new Random()),
                 new Parameters(
-                        new PopulationInfo(100, 1, 0.99, 0.99),
+                        new PopulationInfo(25, 2, 0.99, 0.99),
                 new IterationBounds(30_000, 1),
                 new Random())
         );
