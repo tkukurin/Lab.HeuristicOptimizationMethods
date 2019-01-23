@@ -36,6 +36,17 @@ public class SolutionInstance {
 //    this.vehiclePool = new RandomAccessSet<>(problem.getVehicles());
   }
 
+  public void removeVehicle(Track track, Vehicle vehicle) {
+    TrackInstance instance = trackToInstance.get(track);
+    List<VehicleInstance> vehicles = instance.getParkedVehicles()
+            .stream()
+            .filter(vi -> !vi.getVehicle().equals(vehicle))
+            .collect(Collectors.toList());
+    instance.setParkedVehicles(vehicles);
+    this.markUnassigned(vehicle);
+    resetVehiclePool();
+  }
+
   public SolutionInstance(Problem problem, Map<Track, List<VehicleInstance>> tracks) {
     this.problem = problem;
     this.trackToInstance = problem.getTracks().stream()
