@@ -1,13 +1,13 @@
 package hmo.solver;
 
+import hmo.Evaluator;
 import hmo.instance.SolutionInstance;
 import hmo.problem.Problem;
 import hmo.problem.Track;
 import hmo.problem.Vehicle;
+
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Random;
-import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Logger;
 
@@ -34,14 +34,22 @@ public class GreedySolver extends Solver {
 
     LOG.info("Starting greedy algorithm.");
     while (!solutionInstance.getVehiclePool().isEmpty()) {
+      double val = 0.0;
+      Track best = null;
       Vehicle nextVehicle = solutionInstance.pollUnusedVehicle(random);
 
       for (Track track : problem.getTracks()) {
         if (solutionInstance.canAssign(nextVehicle, track)) {
           solutionInstance.assign(nextVehicle, track);
-          break;
+          Evaluator evaluator = new Evaluator(solutionInstance);
+          if (evaluator.totalGoal() > val) {
+            val = evaluator.totalGoal();
+            best = track;
+          }
+          solutionInstance.removeVehicle(track, nextVehicle);
         }
       }
+      solutionInstance.assign(nextVehicle, best);
     }
 
     LOG.info("Completed greedy algorithm.");
